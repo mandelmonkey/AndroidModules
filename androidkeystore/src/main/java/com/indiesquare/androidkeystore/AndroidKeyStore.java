@@ -17,6 +17,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -48,6 +49,16 @@ public class AndroidKeyStore {
 
     public static boolean useAES(String alias, Context ctx)  {
 
+        if(keyStore == null) {
+            try {
+                keyStore = KeyStore.getInstance("AndroidKeyStore");
+                keyStore.load(null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
         //only use AES if the users version is M or greater and the alias is not an existing RSA key
         if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) { //supports AES so use it
     /*
@@ -75,6 +86,8 @@ public class AndroidKeyStore {
 
                 }
             }catch (Exception e){
+                Log.e(TAG,Log.getStackTraceString(e));
+                Log.d(TAG,"Using RSA");
                 return false;
             }
             Log.d(TAG,"Using AES");
@@ -207,6 +220,12 @@ public class AndroidKeyStore {
 
 
 
+    }
+
+    public static boolean removeAllData(Context ctx){
+        SharedPreferences settings = ctx.getSharedPreferences("SP", Context.MODE_PRIVATE);
+        settings.edit().clear().apply();
+        return true;
     }
 
     public static String loadFromKeyStore(String alias,String dataKey,Context ctx) {
