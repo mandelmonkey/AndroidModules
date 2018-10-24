@@ -1,7 +1,6 @@
 package com.indiesquare.androidcrypto;
 
 import java.security.SecureRandom;
-
 /**
  * Created by a on 2018/10/11.
  */
@@ -10,8 +9,11 @@ public class AndroidCrypto {
     public AndroidCrypto(){
 
     }
-
+    private static final int VERSION_CODE_JELLY_BEAN_MR2 = 18;
     public static String generateRandomBytes(){
+
+        PRNGFixes.apply();
+
 
 
         SecureRandom random = new SecureRandom();

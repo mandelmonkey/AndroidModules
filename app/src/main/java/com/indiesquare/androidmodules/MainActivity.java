@@ -8,38 +8,29 @@ import com.indiesquare.androidcrypto.AndroidCrypto;
 import com.indiesquare.androidkeystore.AndroidKeyStore;
 
 public class MainActivity extends AppCompatActivity {
-
+    private static final String TAG = "AndroidModules";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.d("test2", AndroidCrypto.generateRandomBytes());
 
-        String alias = "keyRSA4";
-         if(AndroidKeyStore.saveToKeyStore(alias,"it vorked afdfd11","test3",this)){
-            Log.d("KeyStore","saved");
+        String alias = "keyRSA5";
+        String keyValue = "test4";
+      /*  AndroidKeyStore.removeAllData(alias,this);
+
+        if(AndroidKeyStore.saveToKeyStore(alias,"my secret data is new",keyValue,this)){
+            Log.d(TAG,"saved");
         }else{
-            Log.e("KeyStore","not saved");
+            Log.e(TAG,"not saved");
         }
-
-
-        String savedData = AndroidKeyStore.loadFromKeyStore(alias, "test3", this);
-
-        Log.d("Keystoresd2", savedData);
-/*
-        if(AndroidKeyStore.saveToKeyStore("userdata2","my sensitive data2","test2",this)){
-            Log.d("KeyStore","saved");
-        }else{
-            Log.e("KeyStore","not saved");
-        }
-
-
-
-        String savedData2 = AndroidKeyStore.loadFromKeyStore("userdata2","test2",this);
-
-        Log.d("Keystore2",savedData2);
 
 */
+        String savedData = AndroidKeyStore.loadFromKeyStore(alias, keyValue, this);
+
+        Log.d(TAG, "result is: "+savedData);
+
+
 
     }
 
