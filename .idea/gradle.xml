@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$/androidcrypto" />
             <option value="$PROJECT_DIR$/androidkeystore" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/customwebview" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

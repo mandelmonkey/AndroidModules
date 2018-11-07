@@ -1,0 +1,451 @@
+
+CURRENT_TASK = null;
+
+CURRENT_CALLBACK = null;
+
+CLEAR_TASK = function() {
+
+    CURRENT_TASK = null;
+
+}
+CLEAR_CALLBACK = function(error) {
+
+    CURRENT_CALLBACK(error, null);
+
+}
+
+START_CALLBACK = function(response) {
+
+
+    CLEAR_TASK();
+
+    try {
+
+        var data = JSON.parse(response);
+
+
+        if (CURRENT_CALLBACK != null) {
+
+            if (data.chain == "eth") {
+
+                if (data.type == "getAccount") {
+
+
+                    CURRENT_CALLBACK(null, [data.data]);
+
+
+
+                } else if (data.type == "signPersonalMessage") {
+
+                    CURRENT_CALLBACK(null, data.data);
+
+                } else if (data.type == "signMessage") {
+
+                    CURRENT_CALLBACK(null, data.data);
+
+                } else if (data.type == "signTransaction") {
+
+                    CURRENT_CALLBACK(null, data.data);
+
+                } else if (data.type == "sendTransaction") {
+
+                    CURRENT_CALLBACK(null, data.data);
+
+                }
+
+            } else if (data.chain == "XCP") {
+                if (data.type == "getAccount") {
+
+
+                    CURRENT_CALLBACK(null, data.data);
+
+
+                } else if (data.type == "signMessage") {
+
+                    CURRENT_CALLBACK(null, data.data);
+
+                } else if (data.type == "signTransaction") {
+
+                    CURRENT_CALLBACK(null, data.data);
+
+                }
+
+            } else if (data.chain == "utils") {
+
+                if (data.type == "useCamera") {
+
+
+                    CURRENT_CALLBACK(null, data.data);
+
+
+                }
+
+            }  else if (data.chain == "lnbtc") {
+
+                if (data.type == "createInvoice") {
+
+
+                    CURRENT_CALLBACK(null, data.data);
+
+
+                }
+                 else if (data.type == "lookUpInvoice") {
+
+
+                    CURRENT_CALLBACK(null, data.data);
+
+
+                }
+                else if (data.type == "payInvoice") {
+
+
+                    CURRENT_CALLBACK(null, data.data);
+
+
+                }
+
+            }
+
+            else {
+                return "callback null";
+            }
+
+        }
+    } catch (e) {
+        console.error("callback error", e);
+        return "error " + e;
+    }
+
+
+}
+
+
+GET_CURRENT_TASK = function() {
+
+    if (CURRENT_TASK == null) {
+        return null;
+    }
+
+    var currentTaskCopy = CURRENT_TASK + "";
+    CURRENT_TASK = null;
+    return currentTaskCopy;
+
+}
+
+
+try {
+
+
+
+    webXCP = [];
+
+    webXCP.getAccounts = function(basePath = null, cb) {
+
+
+
+                      var data = {
+            "chain": "XCP",
+            "type": "getAccount",
+            "basePath": basePath
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+
+    };
+    webXCP.signMessage = function(basePath = null, data, cb) {
+
+
+
+
+                      var data = {
+            "chain": "XCP",
+            "type": "signMessage",
+            "data": data,
+            "basePath": basePath
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+
+
+    };
+    webXCP.signTransaction = function(basePath = null, data, cb) {
+
+
+    var data = {
+            "chain": "XCP",
+            "type": "signTransaction",
+            "data": data,
+            "basePath": basePath
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+    }
+
+
+} catch (e) {
+    console.error(e);
+    alert("webXCP: " + e);
+}
+
+
+try {
+
+
+
+    mobileUtils = [];
+    mobileUtils.platform = "CasaTookan";
+
+    mobileUtils.openScreen= function(data){
+    var data = {
+            "chain": "utils",
+            "type": "openScreen",
+            "data":data
+        };
+
+                try{
+                console.log("sending to webkit")
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                 }
+    };
+
+    mobileUtils.callURLScheme = function(data,cb){
+
+    var data = {
+            "chain": "utils",
+            "type": "urlScheme",
+            "data":data
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+
+    };
+
+    mobileUtils.openUrl = function(data,cb){
+
+
+
+    var data = {
+            "chain": "utils",
+            "type": "openUrl",
+            "data":data
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+    };
+
+    mobileUtils.useCamera = function(cb) {
+
+
+
+    var data = {
+            "chain": "utils",
+            "type": "useCamera"
+        };
+
+                try{
+                console.log("sending to webkit")
+                  CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+
+    };
+
+
+    mobileUtils.reloadBalances = function(){
+    var data = {
+            "chain": "utils",
+            "type": "reloadBalances",
+            "data":""
+        };
+
+                try{
+                console.log("sending to webkit")
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                 }
+    };
+
+
+
+
+
+} catch (e) {
+    console.error(e);
+    alert("mobileTools: " + e);
+}
+
+try {
+
+
+
+    webLN = [];
+
+
+    webLN.createInvoice = function(data,cb){
+
+
+             var data ={
+            "chain": "lnbtc",
+            "type": "createInvoice",
+            "data":data
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+    };
+
+
+      webLN.lookUpInvoice = function(data,cb){
+
+
+               var data = {
+            "chain": "lnbtc",
+            "type": "lookUpInvoice",
+            "data":data
+        };
+
+                try{
+                console.log("sending to webkit")
+                 CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+    };
+
+
+        webLN.payInvoice = function(data,cb){
+
+
+         var data = {
+            "chain": "lnbtc",
+            "type": "payInvoice",
+            "data":data
+        };
+
+                try{
+                console.log("sending to webkit")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+    };
+
+
+
+
+} catch (e) {
+    console.error(e);
+    alert("webLN: " + e);
+}

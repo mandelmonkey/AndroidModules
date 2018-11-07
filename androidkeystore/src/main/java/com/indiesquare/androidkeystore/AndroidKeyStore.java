@@ -3,6 +3,8 @@ package com.indiesquare.androidkeystore;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
@@ -10,6 +12,9 @@ import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.Log;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,6 +27,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Locale;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -37,6 +43,8 @@ import javax.security.auth.x500.X500Principal;
  * Created by a on 2018/10/11.
  */
 
+
+
 public class AndroidKeyStore {
     private static final String TAG = "KeyStoreModule";
     static KeyStore keyStore;
@@ -45,101 +53,141 @@ public class AndroidKeyStore {
     static String aesKeyTag = "RSAEncryptedAESKey";
     static String spTAG = "userSensitiveData";
 
+
+
+
     public AndroidKeyStore() {
 
 
     }
 
-    public static void init() {
+    public static void init(){
         if (keyStore == null) {
             try {
                 keyStore = KeyStore.getInstance("AndroidKeyStore");
                 keyStore.load(null);
             } catch (Exception e) {
                 e.printStackTrace();
+
+                Log.e(TAG, Log.getStackTraceString(e));
+
             }
 
         }
     }
 
 
+    public static String saveToKeyStore(String alias, String sensitiveData, String dataKey, Context ctx) {
 
-
-
-    public static boolean saveToKeyStore(String alias, String sensitiveData, String dataKey, Context ctx) {
-
-        if (setAESKey(alias, ctx) == false) {
+        AndroidKeyStoreResponse setAes = setAESKey(alias,ctx);
+        if (setAes.error != null) {
             Log.e(TAG, "error generating or recovering AES key");
-            return false;
+            return formatForTitanium(setAes);
         }
 
-        String[] encryptedDataIV = encryptString(alias, sensitiveData);
+        AndroidKeyStoreResponse res = encryptString(alias, sensitiveData);
 
-        if (encryptedDataIV[0] != "error") {
+        if(res.error != null){
+            return formatForTitanium(res);
+        }
+
+        String[] encryptedDataIV = (String[])res.response;
+
+
             SharedPreferences.Editor editor = ctx.getSharedPreferences(spTAG, Activity.MODE_PRIVATE).edit();
 
             editor.putString(dataKey, encryptedDataIV[0]);
             editor.putString(dataKey + "_IV", encryptedDataIV[1]);
             editor.apply();
-            return true;
+            return formatForTitanium(new AndroidKeyStoreResponse("success",null));
+
+
+
+
+
+    }
+    static String formatForTitanium(AndroidKeyStoreResponse res){
+
+         JSONObject json = new JSONObject();
+
+        try {
+            if(res.error != null) {
+                json.put("error", res.error);
+            }
+            if(res.response != null) {
+                json.put("response", res.response);
+            }
+
+
+
+        } catch (JSONException e) {
+            Log.e(TAG, Log.getStackTraceString(e));
+            e.printStackTrace();
+
         }
 
-
-        return false;
+        return json.toString();
 
 
     }
 
-    public static String loadFromKeyStore(String alias, String dataKey, Context ctx) {
+    public static String loadFromKeyStore(String alias, String dataKey, Context ctx){
 
         SharedPreferences sharedPreferences = ctx.getSharedPreferences(spTAG, Activity.MODE_PRIVATE);
 
-        if (!sharedPreferences.contains(dataKey)) {
-            return "does not exist";
+        if (sharedPreferences.contains(dataKey)) {
+
+
+            String encryptedDataString = sharedPreferences.getString(dataKey, null);
+
+
+            AndroidKeyStoreResponse setAES = setAESKey(alias,ctx);
+                if(setAES.error != null){
+                    return formatForTitanium(setAES);
+                }
+
+
+
+                if (!sharedPreferences.contains(dataKey + "_IV")) {
+                    return formatForTitanium( new AndroidKeyStoreResponse(null, "IV does not exist"));
+
+                }
+
+
+                String IV = sharedPreferences.getString(dataKey + "_IV", null);
+
+                return formatForTitanium(decryptString(alias, encryptedDataString, IV));
+
+
+
         }
-        String encryptedDataString = sharedPreferences.getString(dataKey, null);
 
-        if (setAESKey(alias, ctx)) {
+        return formatForTitanium(new AndroidKeyStoreResponse(null,"does not exist"));
 
-            if (!sharedPreferences.contains(dataKey + "_IV")) {
-                return "IV does not exist";
-            }
-
-
-            String IV = sharedPreferences.getString(dataKey + "_IV", null);
-
-            String decryptedData = decryptString(alias, encryptedDataString, IV);
-
-            if (decryptedData != "error") {
-                return decryptedData;
-            }
-
-
-        }
-
-        return "error";
 
     }
 
 
-    public static boolean removeAllData(String alias, Context ctx) {
+    public static String removeAllData(String alias, Context ctx) {
 
         Log.d(TAG,"Removing all data from keystore and preferences");
+        SharedPreferences settings = ctx.getSharedPreferences(spTAG, Context.MODE_PRIVATE);
+        settings.edit().clear().apply();
         init();
 
         try {
             keyStore.deleteEntry(alias);
         } catch (KeyStoreException e) {
+            Log.e(TAG,e.toString());
             e.printStackTrace();
-            return false;
+           return formatForTitanium(new AndroidKeyStoreResponse(null, Log.getStackTraceString(e)));
         }
         secretKey = null;
         keyStore = null;
-        SharedPreferences settings = ctx.getSharedPreferences(spTAG, Context.MODE_PRIVATE);
-        settings.edit().clear().apply();
+
 
         Log.d(TAG,"Removed all data from keystore and preferences");
-        return true;
+        return formatForTitanium(new AndroidKeyStoreResponse("success",null));
     }
 
 
@@ -185,7 +233,7 @@ public class AndroidKeyStore {
         }
     }
 
-    static boolean setAESKey(String alias, Context ctx) {
+    static AndroidKeyStoreResponse setAESKey(String alias, Context ctx){
 
         try {
 
@@ -194,7 +242,8 @@ public class AndroidKeyStore {
             if(secretKey != null){
                 //secret key already set!
                 Log.d(TAG,"secret key already set");
-                return true;
+
+            return new AndroidKeyStoreResponse("secret key already set",null);
             }
 
             // Create new key if needed
@@ -222,8 +271,12 @@ public class AndroidKeyStore {
                         Log.e(TAG, "not secure hardware");
 
                     }
-                    return true;
+                    return new AndroidKeyStoreResponse("Created new AES key",null);
                 } else { //AES keystore not supported so use hybrid method of generatingRSA keystore to encrypt a seperate AES Symmetric Key
+
+                    /*android keystore has an issue on persian lang so set lang to english temporarily*/
+                    Locale initialLocale = Locale.getDefault();
+                    setLocale(Locale.ENGLISH,ctx);
 
                     Calendar start = Calendar.getInstance();
                     Calendar end = Calendar.getInstance();
@@ -241,6 +294,8 @@ public class AndroidKeyStore {
 
                     KeyPair keyPair = generator.generateKeyPair();
 
+                    setLocale(initialLocale,ctx);
+
                     Log.d(TAG, "Created new RSA key");
 
                     //RSA Asymmetric key generated from Keystore, now create an AES key
@@ -249,7 +304,7 @@ public class AndroidKeyStore {
                     secretKey = keyGen.generateKey();
 
                     //Encrypt the AES key with the RSA keystore public key
-                    String encryptedSecretKey = encryptAESKey(keyPair.getPublic(), secretKey);
+                    String encryptedSecretKey = (String)encryptAESKey(keyPair.getPublic(), secretKey).response;
 
                     Log.d(TAG, "saving encrypted AES key to preferences");
 
@@ -262,7 +317,7 @@ public class AndroidKeyStore {
 
                     Log.d(TAG, "saved encrypted AES key to preferences: "+encryptedSecretKey);
 
-                    return true;
+                    return new AndroidKeyStoreResponse("Created new RSA key",null);
 
 
                 }
@@ -275,7 +330,7 @@ public class AndroidKeyStore {
                     Log.d(TAG, "loading keystore aes");
                     secretKey = (SecretKey) keyStore.getKey(alias, null);
 
-                    return true;
+                    return new AndroidKeyStoreResponse("Loaded AES key",null);
 
                 }
                 else {
@@ -290,15 +345,17 @@ public class AndroidKeyStore {
 
                     if (!sharedPreferences.contains(aesKeyTag)) {
                         Log.e(TAG, "aes key doest not exist in shared preferences");
-                        return false;
+                        return new AndroidKeyStoreResponse(null,"aes key doest not exist in shared preferences");
+
                     }
                     String encryptedAESKeyString = sharedPreferences.getString(aesKeyTag, null);
 
                     Log.d(TAG, "loaded stored AES key: "+encryptedAESKeyString);
 
-                    secretKey = decryptAESKey(privateKeyEntry.getPrivateKey(), encryptedAESKeyString);
+                    secretKey = (SecretKey)decryptAESKey(privateKeyEntry.getPrivateKey(), encryptedAESKeyString).response ;
 
-                    return true;
+                    return new AndroidKeyStoreResponse(null,"loaded stored AES key");
+
                 }
 
 
@@ -306,13 +363,15 @@ public class AndroidKeyStore {
         } catch (Exception e) {
 
             Log.e(TAG, Log.getStackTraceString(e));
+
+            return new AndroidKeyStoreResponse(null, Log.getStackTraceString(e));
+
         }
 
-        return false;
 
     }
 
-    static String[] encryptString(String alias, String data) {
+    static AndroidKeyStoreResponse encryptString(String alias, String data)  {
         try {
 
             Cipher cipher = Cipher.getInstance(cipherParams);
@@ -323,19 +382,22 @@ public class AndroidKeyStore {
             byte[] encryptedSensitiveDataBytes = cipher.doFinal(sensitiveDataBytes);
             String encryptedSensitiveDataString = Base64.encodeToString(encryptedSensitiveDataBytes, Base64.DEFAULT);
             String encryptionIVString = Base64.encodeToString(encryptionIV, Base64.DEFAULT);
-            return new String[]{
+            String[] response = new String[]{
                     encryptedSensitiveDataString, encryptionIVString
             };
+            return new AndroidKeyStoreResponse(response, null);
         } catch (Exception e) {
 
             Log.e(TAG, Log.getStackTraceString(e));
+
+
+            Log.e(TAG, Log.getStackTraceString(e));
+            return new AndroidKeyStoreResponse(null, Log.getStackTraceString(e));
         }
-        return new String[]{
-                "error", "error"
-        };
+
     }
 
-    static String decryptString(String alias, String encryptedDataStr, String IV) {
+    static AndroidKeyStoreResponse decryptString(String alias, String encryptedDataStr, String IV){
         try {
 
             byte[] encryptionIV = Base64.decode(IV, Base64.DEFAULT);
@@ -349,17 +411,17 @@ public class AndroidKeyStore {
 
             String decryptedData = new String(decryptedDataBytes, "UTF-8");
 
-            return decryptedData;
+            return new AndroidKeyStoreResponse( decryptedData, null);
 
         } catch (Exception e) {
 
-            Log.e(TAG, Log.getStackTraceString(e));
+            return new AndroidKeyStoreResponse(null, Log.getStackTraceString(e));
+
         }
-        return "error";
     }
 
 
-    static String encryptAESKey(PublicKey publicKey, SecretKey aesKey) {
+    static AndroidKeyStoreResponse encryptAESKey(PublicKey publicKey, SecretKey aesKey) {
         try {
 
             Cipher inCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
@@ -372,18 +434,20 @@ public class AndroidKeyStore {
             cipherOutputStream.close();
 
             byte[] vals = outputStream.toByteArray();
-            return Base64.encodeToString(vals, Base64.DEFAULT);
+            String response = Base64.encodeToString(vals, Base64.DEFAULT);
+            return new AndroidKeyStoreResponse(response, null);
 
 
         } catch (Exception e) {
 
+
             Log.e(TAG, Log.getStackTraceString(e));
-            return "error";
+            return new AndroidKeyStoreResponse(null, Log.getStackTraceString(e));
         }
     }
 
 
-    static SecretKey decryptAESKey(PrivateKey privateKey, String encryptedAESKey) {
+    static AndroidKeyStoreResponse decryptAESKey(PrivateKey privateKey, String encryptedAESKey)  {
         try {
 
             Cipher output = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
@@ -403,14 +467,24 @@ public class AndroidKeyStore {
             }
             SecretKey originalKey = new SecretKeySpec(bytes, 0, bytes.length, "AES");
 
-            return originalKey;
+            return new AndroidKeyStoreResponse(originalKey, null);
 
         } catch (Exception e) {
 
             Log.e(TAG, Log.getStackTraceString(e));
-            return null;
+            return new AndroidKeyStoreResponse(null, Log.getStackTraceString(e));
         }
     }
+
+
+    private static void setLocale(Locale locale,Context ctx) {
+        Locale.setDefault(locale);
+        Resources resources = ctx.getResources();
+        Configuration config = resources.getConfiguration();
+        config.locale = locale;
+        resources.updateConfiguration(config, resources.getDisplayMetrics());
+    }
+
 
 
 }

@@ -1,0 +1,180 @@
+const addressHex = "replaceWithAddress"
+const rpcURL = "replaceWithRPCURL"
+const chainID = 0x01
+
+ function executeCallback (id, error, value) {
+            Trust.executeCallback(id, error, value)
+        }
+
+Trust.init(rpcURL, {
+    getAccounts: function(cb) {
+        console.log("get address");
+        cb(null, [addressHex])
+    },
+    processTransaction: function(tx, cb) {
+
+        console.log("tx", tx);
+        web3.eth.getTransactionCount(addressHex, "pending", function(err, res) {
+            console.log(res);
+            if (err != undefined) {
+                CURRENT_TASK = JSON.stringify({
+                    "chain": "eth",
+                    "type": "error",
+                    "data": err
+                });
+                CURRENT_CALLBACK = cb;
+                return;
+
+            }
+            tx["nonce"] = res;
+
+            try {
+				if(tx["gas"] == null){
+				console.log("estimating gas");
+                web3.eth.estimateGas(tx, function(err, res) {
+                    console.log(err);
+                    console.log(res);
+                    if (err != null) {
+                        CURRENT_TASK = JSON.stringify({
+                            "chain": "eth",
+                            "type": "error",
+                            "data": err + ""
+                        });
+                        CURRENT_CALLBACK = cb;
+
+                        return;
+                    } else {
+                        tx["gas"] = parseInt((res * 1.2));
+                    }
+
+
+
+                      var data = {
+                        "chain": "eth",
+                        "type": "sendTransaction",
+                        "data": tx
+                    };
+
+                try{
+                console.log("sending to webkit 1")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+                });
+
+                }else{
+
+
+
+                      var data = {
+                        "chain": "eth",
+                        "type": "sendTransaction",
+                        "data": tx
+                    };
+
+                try{
+                console.log("sending to webkit 2")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                 console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+                }
+
+            } catch (e) {
+                console.log(e);
+            }
+
+
+        });
+    },
+    signMessage: function(msgParams, cb) {
+        console.log("get sm");
+
+
+
+                      var data = {
+            "chain": "eth",
+            "type": "signMessage",
+            "data": msgParams
+        };
+
+                try{
+                console.log("sending to webkit 3")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+
+    },
+    signPersonalMessage: function(msgParams, cb) {
+
+			 console.log("sign personal", msgParams);
+
+                      var data = {
+            "chain": "eth",
+            "type": "signPersonalMessage",
+            "data": msgParams
+        };
+
+                try{
+                console.log("sending to webkit 4")
+                CURRENT_CALLBACK = cb;
+                 webkit.messageHandlers.setTask.postMessage(data)
+
+                 }
+                 catch(e){
+                 //not ios, webkit not found
+                  console.error(e)
+                 CURRENT_TASK = JSON.stringify(data);
+                CURRENT_CALLBACK = cb;
+                 }
+
+
+
+    },
+    signTypedMessage: function(msgParams, cb) {
+        console.log("sign typed");
+        alert("sign typed message not supported");
+
+    }
+}, {
+    address: addressHex,
+    networkVersion: chainID
+})
+
+web3.setProvider = function() {
+    console.log("setting provider");
+    console.debug('Trust Wallet - overrode web3.setProvider')
+}
+
+web3.eth.defaultAccount = addressHex
+
+web3.version.getNetwork = function(cb) {
+    cb(null, chainID)
+}
+web3.eth.getCoinbase = function(cb) {
+    return cb(null, addressHex)
+}

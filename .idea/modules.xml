@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/androidcrypto/androidcrypto.iml" filepath="$PROJECT_DIR$/androidcrypto/androidcrypto.iml" />
       <module fileurl="file://$PROJECT_DIR$/androidkeystore/androidkeystore.iml" filepath="$PROJECT_DIR$/androidkeystore/androidkeystore.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/customwebview/customwebview.iml" filepath="$PROJECT_DIR$/customwebview/customwebview.iml" />
     </modules>
   </component>
 </project>
