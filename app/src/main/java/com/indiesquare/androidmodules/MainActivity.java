@@ -2,12 +2,11 @@ package com.indiesquare.androidmodules;
 
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
-import android.webkit.ValueCallback;
 import android.webkit.WebView;
+import android.widget.RelativeLayout;
 
 import com.indiesquare.customwebview.CallbackInterface;
 import com.indiesquare.customwebview.CustomWebView;
@@ -57,15 +56,6 @@ public class MainActivity extends AppCompatActivity {
 
             String checkReq = "if(typeof web3 !== 'undefined' && typeof GET_CURRENT_TASK !== 'undefined'){return {status:'data',data:GET_CURRENT_TASK(),buttons:document.readyState} }";
 
-
-            String injectjs =
-                    "function injectCode() {if(typeof web3 === 'undefined'){var parent = document.getElementsByTagName('head').item(0);" +
-                            "var script = document.createElement('script');" +
-                            "script.type = 'text/javascript';" +
-                            "script.innerHTML =  " + web3Script + ";" +
-                            "parent.appendChild(script);  return {status:'injected',buttons:document.readyState}}else { " + checkReq + "}} injectCode();";
-
-
             web3Script =
                     "var parent = document.getElementsByTagName('head').item(0);" +
                             "var script = document.createElement('script');" +
@@ -73,91 +63,27 @@ public class MainActivity extends AppCompatActivity {
                             "script.innerHTML = window.atob('" + encoded + "');" +
                             "parent.appendChild(script)";
 
-           /* ClipboardManager clipboard = (ClipboardManager)
-                    getSystemService(Context.CLIPBOARD_SERVICE);
-            ClipData clip = ClipData.newPlainText("simple text", web3Script);*/
-
-
-          //  byte[] data = Base64.decode(encoded, Base64.DEFAULT);
-           // String text = new String(data, "UTF-8");
-            WriteText(web3Script);
 
           web3Script ="javascript:(function() { " +
                     web3Script
                     +
                     "})()";
 
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+            final WebView mWebView = CustomWebView.createWebView(this,web3Script,100,true,myCallback );
 
-            final String newStr = web3Script;
-
-            final WebView mWebView = CustomWebView.createWebView(this,web3Script,myCallback );
-mWebView.setWebContentsDebuggingEnabled(true);
-
+           // mWebView.loadUrl("https://www.mandelduck.com/ethereumSample?sd=e");
+            mWebView.loadUrl("https://www.cryptokitties.co");
             setContentView(mWebView);
 
-            /* final Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    //Do something after 100ms
-
-                    mWebView.evaluateJavascript(newStr, new ValueCallback<String>() {
-                        @Override
-                        public void onReceiveValue(String s) {
-                            Log.d("LogName", s); // Log is written, but s is always null
-                        }
-                    });
-
-                }
-            }, 3000);
-
-*/
 
         } catch (Exception e) {
             e.printStackTrace();
             Log.e("web3text",e.toString());
         }
 
-
-/*
-
-
-        Log.d("test2", AndroidCrypto.generateRandomBytes());
-
-        String alias = "keyRSA5";
-        String keyValue = "test4";
-
-       // AndroidKeyStore.removeAllData(alias,this);
-
-
-
-
-String res = AndroidKeyStore.saveToKeyStore(alias,"my secret data is new",keyValue,this);
-
-            Log.d(TAG,"saved "+res);
-
-
-
-
-          String response = AndroidKeyStore.loadFromKeyStore(alias, keyValue, this);
-
-
-                Log.d(TAG, "result is: " + response );
-
-
-         res = AndroidKeyStore.saveToKeyStore(alias,"my secret data is new",keyValue,this);
-
-        Log.d(TAG,"saved "+res);
-
-
-
-
-          response = AndroidKeyStore.loadFromKeyStore(alias, keyValue, this);
-
-
-        Log.d(TAG, "result is: " + response );
-
-*/
 
     }
     public void WriteText(String txt) {

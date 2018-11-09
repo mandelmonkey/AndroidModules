@@ -55,17 +55,17 @@ Trust.init(rpcURL, {
                         "data": tx
                     };
 
+                CURRENT_CALLBACK = cb;
                 try{
                 console.log("sending to webkit 1")
-                CURRENT_CALLBACK = cb;
+
                  webkit.messageHandlers.setTask.postMessage(data)
 
                  }
                  catch(e){
                  //not ios, webkit not found
                   console.error(e)
-                 CURRENT_TASK = JSON.stringify(data);
-                CURRENT_CALLBACK = cb;
+                WebViewMessageInterface.postMessage(JSON.stringify(data));
                  }
 
 
@@ -112,18 +112,18 @@ Trust.init(rpcURL, {
             "type": "signMessage",
             "data": msgParams
         };
-
+CURRENT_CALLBACK = cb;
                 try{
                 console.log("sending to webkit 3")
-                CURRENT_CALLBACK = cb;
+
                  webkit.messageHandlers.setTask.postMessage(data)
 
                  }
                  catch(e){
                  //not ios, webkit not found
                   console.error(e)
-                 CURRENT_TASK = JSON.stringify(data);
-                CURRENT_CALLBACK = cb;
+                WebViewMessageInterface.postMessage(JSON.stringify(data));
+
                  }
 
 
@@ -138,18 +138,17 @@ Trust.init(rpcURL, {
             "type": "signPersonalMessage",
             "data": msgParams
         };
-
+   CURRENT_CALLBACK = cb;
                 try{
                 console.log("sending to webkit 4")
-                CURRENT_CALLBACK = cb;
+
                  webkit.messageHandlers.setTask.postMessage(data)
 
                  }
                  catch(e){
                  //not ios, webkit not found
                   console.error(e)
-                 CURRENT_TASK = JSON.stringify(data);
-                CURRENT_CALLBACK = cb;
+                WebViewMessageInterface.postMessage(JSON.stringify(data));
                  }
 
 

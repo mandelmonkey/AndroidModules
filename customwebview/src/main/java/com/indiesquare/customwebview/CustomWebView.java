@@ -20,85 +20,59 @@ public class CustomWebView {
     }
 
 
-    public static WebView createWebView(final Context ctx, final String injectedCode, final CallbackInterface callback) {
+    public static WebView createWebView(final Context ctx, final String injectedCode, int height, boolean debug, final CallbackInterface callback) {
 
 
         final WebView mWebView = new WebView(ctx);
+
         mWebView.getSettings().setJavaScriptEnabled(true);
+
         mWebView.setWebChromeClient(new WebChromeClient());
-        //mWebView.setId(0X100);
-        mWebView.setScrollContainer(false);
+
+        mWebView.setWebContentsDebuggingEnabled(debug);
+
+        final WebViewMessageInterface interFace = new WebViewMessageInterface(callback);
+
+
+        mWebView.addJavascriptInterface(interFace, "WebViewMessageInterface");
+
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+                RelativeLayout.LayoutParams.MATCH_PARENT, height);
         params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+
         mWebView.setLayoutParams(params);
         mWebView.setWebViewClient( new WebViewClient(){
 
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onPageFinished(final WebView view, String url) {
-
-                Log.d("INJECTED CODE",url);
-                Log.d("INJECTED CODE",injectedCode);
-                view.evaluateJavascript(injectedCode, new ValueCallback<String>() {
-                    @Override
-                    public void onReceiveValue(String s) {
-                        Log.d("LogName", s); // Log is written, but s is always null
-                    }
-                }); }
+                callback.eventFired("loaded");
+            }
 
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onPageStarted (WebView view,
                                        String url,
                                        Bitmap favicon){
-
-
-
+                callback.eventFired("started");
             }
 
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
-            public boolean shouldOverrideUrlLoading(final WebView view, String url) {
+            public void onLoadResource(final WebView view, String url)
+            {
 
-                 view.evaluateJavascript(injectedCode, new ValueCallback<String>() {
+                view.evaluateJavascript(injectedCode, new ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String s) {
                         Log.d("LogName", s); // Log is written, but s is always null
                     }
                 });
-                /*
-                Log.d("Custom Web",url);
-                callback.eventFired(url);
 
-                RequestQueue queue = Volley.newRequestQueue(ctx);
-
-
-// Request a string response from the provided URL.
-                StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                        new Response.Listener<String>() {
-                            @Override
-                            public void onResponse(String response) {
-                                // Display the first 500 characters of the response string.
-                                Log.d("load request",response);
-
-                                view.loadData(response, "text/html; charset=UTF-8", null);
-                            }
-                        }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-
-                    }
-                });
-
-// Add the request to the RequestQueue.
-                queue.add(stringRequest);
-
-*/
-                return false;
             }
+
         });
-        mWebView.loadUrl("https://www.cryptokitties.co");
+
         return mWebView;
 
     }
