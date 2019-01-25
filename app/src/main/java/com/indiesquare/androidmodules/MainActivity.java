@@ -16,7 +16,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "AndroidModules";
     @Override
@@ -26,9 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-
-        CallbackInterface myCallback = new CallbackInterface() {
+         CallbackInterface myCallback = new CallbackInterface() {
             @Override
             public void eventFired(String event) {
                 Log.d("event fired",event);

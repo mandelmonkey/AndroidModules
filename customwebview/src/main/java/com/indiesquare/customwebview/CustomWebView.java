@@ -1,5 +1,6 @@
 package com.indiesquare.customwebview;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Build;
@@ -7,6 +8,7 @@ import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.RelativeLayout;
@@ -57,6 +59,11 @@ public class CustomWebView {
                 callback.eventFired("started");
             }
 
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl){
+                callback.eventFired("error");
+            }
+
             @RequiresApi(api = Build.VERSION_CODES.KITKAT)
             @Override
             public void onLoadResource(final WebView view, String url)
@@ -69,6 +76,17 @@ public class CustomWebView {
                     }
                 });
 
+            }
+
+            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if(url.startsWith("lightning:") || url.startsWith("bitcoin:") || url.startsWith("counterparty:"))
+                {
+                    return true;
+                }
+                return false;
             }
 
         });
