@@ -1,1 +1,1 @@
-include ':app', ':androidcrypto', ':androidkeystore', ':customwebview'
+include ':app', ':androidcrypto', ':androidkeystore', ':customwebview', ':lndmobile', ':monkey'

@@ -16,6 +16,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+
+
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "AndroidModules";
     @Override
@@ -23,6 +25,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+    //test playground to test the other modules
 
 
          CallbackInterface myCallback = new CallbackInterface() {
