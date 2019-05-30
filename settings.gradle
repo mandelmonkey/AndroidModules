@@ -1,1 +1,1 @@
-include ':app', ':androidcrypto', ':androidkeystore', ':customwebview', ':Lndmobile', ':lndmobilewrapper', ':bluetoothiccard'
+include ':app', ':androidcrypto', ':androidkeystore', ':customwebview', ':Lndmobile', ':lndmobilewrapper', ':bluetoothiccard', ':googledrive', ':websocket'

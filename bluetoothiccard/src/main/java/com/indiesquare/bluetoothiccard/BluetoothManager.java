@@ -63,6 +63,20 @@ public class BluetoothManager {
     }
 
 
+    public static boolean isBluetoothEnabled(){
+
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) {
+            return false;
+        } else {
+            if (!mBluetoothAdapter.isEnabled()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
 
     public static void scanDevices(final Context context, final CallbackInterface callback) {
@@ -293,9 +307,10 @@ public class BluetoothManager {
                 mState = UART_PROFILE_DISCONNECTED;
                 mService.close();
                 try {
-                    mState = UART_PROFILE_CONNECTED;
                     JSONObject obj = new JSONObject();
                     obj.put("type", "disconnected");
+                    obj.put("name", mDevice.getName());
+                    obj.put("address", mDevice.getAddress());
                     currentCallback.eventFired(obj.toString());
                 }
                 catch(Exception e){
@@ -306,6 +321,18 @@ public class BluetoothManager {
             //*********************//
             if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
                 mService.enableTXNotification();
+            }
+
+            if (action.equals(UartService.ERROR)) {
+
+                try {
+                    JSONObject obj = new JSONObject();
+                    obj.put("type", "error");
+                    currentCallback.eventFired(obj.toString());
+                }
+                catch (Exception e){
+                    Log.e(TAG, e.toString());
+                }
             }
             //*********************//
             if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {

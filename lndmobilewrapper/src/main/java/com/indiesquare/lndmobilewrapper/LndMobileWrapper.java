@@ -2,6 +2,8 @@ package com.indiesquare.lndmobilewrapper;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.os.Environment;
+import android.os.StatFs;
 import android.util.Base64;
 import android.util.Log;
 
@@ -10,6 +12,8 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,12 +34,50 @@ public class LndMobileWrapper {
 
     }
 
+    public static long checkStorage(){
+        StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
 
-    public static void startLnd(final Context context, final String config, final CallbackInterface callback){
+        long bytesAvailable = stat.getBlockSizeLong() * stat.getAvailableBlocksLong();
+
+        return bytesAvailable;
+    }
+    @Override
+    public void finalize() {
+       Log.i("lndmobilewrapper","finalize");
+    }
+
+    public static void startLnd(final Context context, final String config, final boolean bootstrap, final CallbackInterface callback){
+
 
         final File appDir =  context.getFilesDir();
 
         saveConfig(context,config,appDir);
+        boolean testnet = config.contains("testnet=1");
+
+        if(bootstrap) {
+
+            String neutrinoDB = "mainnet/neutrino.db";
+            String blockheadersBin = "mainnet/block_headers.bin";
+            String regFilterHeadersBin = "mainnet/reg_filter_headers.bin";
+            String directory = "mainnet";
+
+            if(testnet) {
+                Log.d("LNDWRAPPER","starting testnet");
+                 neutrinoDB = "testnet/neutrino.db";
+                 blockheadersBin = "testnet/block_headers.bin";
+                 regFilterHeadersBin = "testnet/reg_filter_headers.bin";
+                 directory = "testnet";
+            }else{
+                Log.d("LNDWRAPPER","starting mainnet");
+            }
+
+            String outputPath = appDir + "/data/chain/bitcoin";
+
+            moveFile(context, neutrinoDB, outputPath,directory);
+            moveFile(context, blockheadersBin, outputPath,directory);
+            moveFile(context, regFilterHeadersBin, outputPath,directory);
+        }
+
 
         Runnable startLnd = new Runnable() {
             @Override
@@ -87,6 +129,53 @@ public class LndMobileWrapper {
             public void run() {
 
                 Lndmobile.genSeed(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+
+    public static void stopLND(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+
+                Lndmobile.stopDaemon(request, new Callback() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -226,6 +315,52 @@ public class LndMobileWrapper {
             public void run() {
 
                 Lndmobile.getInfo(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+    public static void exportAllChannelBackups(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+
+                Lndmobile.exportAllChannelBackups(request, new Callback() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -449,6 +584,50 @@ public class LndMobileWrapper {
 
     }
 
+    public static void subscribeSingleInvoice(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.subscribeSingleInvoice(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
     public static void subscribeInvoices(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
@@ -494,9 +673,148 @@ public class LndMobileWrapper {
 
     }
 
-    public static void addInvoice(final byte[] request, final CallbackInterface callback){
+    public static void settleInvoice(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.settleInvoice(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+    public static void cancelInvoice(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.cancelInvoice(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+
+    public static void addHoldInvoice(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.addHoldInvoice(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+    public static void addInvoice(final byte[] request, final CallbackInterface callback){
+
+
+
+
+Runnable runner = new Runnable() {
             @Override
             public void run() {
                 Lndmobile.addInvoice(request, new Callback() {
@@ -1051,6 +1369,101 @@ public class LndMobileWrapper {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+
+    private static void moveFile(Context context, String inputPath, String outputPath,String directory) {
+
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            Log.d("filemove","moving file "+inputPath);
+            //create output directory if it doesn't exist
+            File dir = new File (outputPath+"/"+directory);
+            if (!dir.exists()) {
+
+                dir.mkdirs();
+
+            }
+                File file = new File (outputPath+"/"+inputPath);
+                if (!file.exists()) {
+
+                    in = context.getAssets().open(inputPath);
+                    out = new FileOutputStream(outputPath + "/" + inputPath);
+                    byte[] buffer = new byte[1024];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
+                    in.close();
+                    in = null;
+                    // write the output file
+                    out.flush();
+                    out.close();
+                    out = null;
+                    Log.d("filemove", "moved file " + inputPath);
+                    // delete the original file
+                    new File(inputPath).delete();
+                }
+
+
+        }
+
+        catch (FileNotFoundException fnfe1) {
+            Log.e("LND FILE NOT FOUND", fnfe1.getMessage());
+        }
+        catch (Exception e) {
+            Log.e("tag", e.getMessage());
+        }
+
+    }
+
+    public static String readLogs(String logsPath) {
+
+
+        try {
+
+            File file = new File (logsPath);
+            if (file.exists()) {
+
+                final InputStream inputStream = new FileInputStream(file);
+                final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                final StringBuilder stringBuilder = new StringBuilder();
+
+                boolean done = false;
+
+                while (!done) {
+                    final String line = reader.readLine();
+                    done = (line == null);
+
+                    if (line != null) {
+                        stringBuilder.append(line);
+                    }
+                }
+
+                reader.close();
+                inputStream.close();
+
+                return stringBuilder.toString();
+
+            }
+            else{
+                Log.i("files","does not exist");
+            }
+
+
+        }
+
+        catch (FileNotFoundException fnfe1) {
+            Log.e("LND FILE NOT FOUND", fnfe1.getMessage());
+        }
+        catch (Exception e) {
+            Log.e("tag", e.getMessage());
+        }
+
+        return "";
 
     }
 

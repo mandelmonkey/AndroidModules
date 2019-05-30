@@ -42,6 +42,9 @@ public class UartService extends Service {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
 
+    public final static String ERROR =
+            "cerror";
+
     public final static String ACTION_GATT_CONNECTED =
             "com.nordicsemi.nrfUART.ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_DISCONNECTED =
@@ -330,6 +333,10 @@ public class UartService extends Service {
 
         if (!mBluetoothGatt.writeDescriptor(descriptor)) {
             showMessage("Couldn't write RX client descriptor value!");
+            String intentAction;
+            intentAction = ERROR;
+            mConnectionState = STATE_DISCONNECTED;
+            broadcastUpdate(intentAction);
         }
     }
 

@@ -8,8 +8,12 @@ import android.util.Log;
 import android.webkit.WebView;
 import android.widget.RelativeLayout;
 
-import com.indiesquare.customwebview.CallbackInterface;
-import com.indiesquare.customwebview.CustomWebView;
+//import com.indiesquare.customwebview.CustomWebView;
+import com.indiesquare.websocket.websocket;
+
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -26,9 +30,45 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
+        final websocket wsss = new websocket(this);
+
+        com.indiesquare.websocket.CallbackInterface myCallback2 = new com.indiesquare.websocket.CallbackInterface() {
+            @Override
+            public void eventFired(String error,String event) {
+                if(error != null){
+                    Log.e("error",error);
+
+                    return;
+                }
+                Log.d("event fired",event);
+
+
+
+                JSONObject student1 = new JSONObject();
+                try {
+                    student1.put("recipient", "game");
+                    student1.put("type", "link");
+                    student1.put("data", "idd");
+                    student1.put("player", "1");
+
+                } catch (JSONException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+
+                wsss.sendMessage(student1.toString());
+            }
+        };
+
     //test playground to test the other modules
+try {
+    wsss.connect("ws://powerful-escarpment-74682.herokuapp.com",myCallback2);
+    //gc.startGoogle();
+}
+catch (Exception e){
 
-
+}
+/*
          CallbackInterface myCallback = new CallbackInterface() {
             @Override
             public void eventFired(String event) {
@@ -84,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             Log.e("web3text",e.toString());
         }
-
+*/
 
     }
     public void WriteText(String txt) {

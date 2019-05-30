@@ -9,7 +9,9 @@
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/bluetoothiccard/bluetoothiccard.iml" filepath="$PROJECT_DIR$/bluetoothiccard/bluetoothiccard.iml" />
       <module fileurl="file://$PROJECT_DIR$/customwebview/customwebview.iml" filepath="$PROJECT_DIR$/customwebview/customwebview.iml" />
+      <module fileurl="file://$PROJECT_DIR$/googledrive/googledrive.iml" filepath="$PROJECT_DIR$/googledrive/googledrive.iml" />
       <module fileurl="file://$PROJECT_DIR$/lndmobilewrapper/lndmobilewrapper.iml" filepath="$PROJECT_DIR$/lndmobilewrapper/lndmobilewrapper.iml" />
+      <module fileurl="file://$PROJECT_DIR$/websocket/websocket.iml" filepath="$PROJECT_DIR$/websocket/websocket.iml" />
     </modules>
   </component>
 </project>
