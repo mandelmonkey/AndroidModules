@@ -22,6 +22,7 @@ import java.io.OutputStream;
 
 import lndmobile.Callback;
 import lndmobile.Lndmobile;
+import lndmobile.SendStream;
 
 import android.util.Log;
 
@@ -269,6 +270,52 @@ public class LndMobileWrapper {
             public void run() {
 
                 Lndmobile.initWallet(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+    public static void describeGraph(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+
+                Lndmobile.describeGraph(request, new Callback() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -1086,6 +1133,51 @@ Runnable runner = new Runnable() {
 
     }
 
+    public static void lookupInvoice(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.lookupInvoice(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
     public static void openChannel(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
@@ -1131,7 +1223,7 @@ Runnable runner = new Runnable() {
 
     }
 
-    public static void sendPayment(final byte[] request, final CallbackInterface callback){
+    public static void sendPaymentSync(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
             @Override
@@ -1173,6 +1265,63 @@ Runnable runner = new Runnable() {
             }
         };
         new Thread(runner).start();
+
+    }
+
+    public static void sendPayment(final byte[] request, final CallbackInterface callback){
+
+
+            Runnable runner = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+
+                   SendStream sendStream = Lndmobile.sendPayment(new Callback() {
+                        @Override
+                        public void onError(Exception e) {
+                            try {
+                                JSONObject json = new JSONObject();
+                                json.put("error", true);
+                                json.put("response", e.getLocalizedMessage());
+
+                                callback.eventFired(json.toString());
+                            } catch (Exception e2) {
+                                callback.eventFired("");
+                            }
+                        }
+
+                        @Override
+                        public void onResponse(byte[] bytes) {
+
+                            String b64 = "";
+                            if (bytes != null && bytes.length > 0) {
+                                b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                            }
+                            try {
+                                JSONObject json = new JSONObject();
+                                json.put("error", false);
+                                json.put("response", b64);
+
+                                callback.eventFired(json.toString());
+                            } catch (Exception e2) {
+                                callback.eventFired("");
+                            }
+
+                        }
+                    });
+
+                        sendStream.send(request);
+                    }
+                    catch(Exception e){
+
+                    }
+
+                }
+
+            };
+            new Thread(runner).start();
+
+
 
     }
 
