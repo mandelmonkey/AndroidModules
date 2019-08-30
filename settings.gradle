@@ -1,1 +1,1 @@
-include ':app', ':androidcrypto', ':androidkeystore', ':customwebview', ':Lndmobile', ':lndmobilewrapper', ':bluetoothiccard', ':googledrive', ':websocket'
+include ':app', ':androidcrypto', ':androidkeystore', ':customwebview', ':Lndmobile', ':lndmobilewrapper', ':bluetoothiccard', ':googledrive', ':websocket', ':androidcore', ':androidcore', ':lnbluetooth', ':qrcodescanner', ':testfiarysdk'

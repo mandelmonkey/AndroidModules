@@ -31,6 +31,8 @@ dependencies {
     //implementation project(':customwebview')
     //implementation project(':lndmobilewrapper')
     //implementation project(':googledrive')
-    implementation project(':websocket')
+    //implementation project(':websocket')
+
+    implementation project(':lnbluetooth')
 }
 

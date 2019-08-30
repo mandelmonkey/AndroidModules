@@ -15,6 +15,7 @@
  */
 package com.indiesquare.googledrive;
 
+import android.content.Context;
 import android.support.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -26,12 +27,16 @@ import android.util.Log;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
+import com.google.api.client.googleapis.util.Utils;
 import com.google.api.client.http.AbstractInputStreamContent;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,8 +45,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * A utility for performing read/write operations on Drive files via the REST API and opening a
@@ -59,6 +67,106 @@ public class DriveServiceHelper {
         mController = controller;
     }
 
+
+    public void downloadZipFile(String folderName,String fileName,Context context) {
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                Log.i(TAG,"start file download");
+
+                try {
+
+                    FileList result = mDriveService.files().list().setSpaces("drive").execute();
+
+                    for (File aFile:result.getFiles()
+                    ) {
+
+                        Log.i(TAG, "found file with name " + aFile.getName() + " " + fileName);
+                        if(aFile.getName().equals(fileName)) {
+                            Log.i(TAG, "downloading file " + aFile.getName() + " " + fileName);
+                            String path = context.getNoBackupFilesDir().getPath()+"/fileName.zip";
+                            Log.i(TAG,"path is "+path);
+                            OutputStream out = new FileOutputStream(path);
+
+
+                            mDriveService.files().get(aFile.getId())
+                                    .executeMediaAndDownloadTo(out);
+
+
+
+
+
+
+
+
+                        }
+
+                    }
+
+
+
+                    mController.fileDownloadError("file not found");
+
+
+                }
+                catch(Exception e){
+                    Log.e(TAG,e.getLocalizedMessage());
+                    mController.fileDownloadError(e.getLocalizedMessage());
+                }
+            }
+        });
+        t1.start();
+
+
+
+    }
+    public boolean unpackZip(String path, String zipname)
+    {
+        InputStream is;
+        ZipInputStream zis;
+        try
+        {
+            String filename;
+            is = new FileInputStream(path + zipname);
+            zis = new ZipInputStream(new BufferedInputStream(is));
+            ZipEntry ze;
+            byte[] buffer = new byte[1024];
+            int count;
+
+            while ((ze = zis.getNextEntry()) != null)
+            {
+                filename = ze.getName();
+
+                // Need to create directories if not exists, or
+                // it will generate an Exception...
+                if (ze.isDirectory()) {
+                    java.io.File fmd = new java.io.File(path + filename);
+                    fmd.mkdirs();
+                    continue;
+                }
+
+                FileOutputStream fout = new FileOutputStream(path + filename);
+
+                while ((count = zis.read(buffer)) != -1)
+                {
+                    fout.write(buffer, 0, count);
+                }
+
+                fout.close();
+                zis.closeEntry();
+            }
+
+            zis.close();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
     public void downloadFile(String folderName,String fileName) {
         Thread t1 = new Thread(new Runnable() {
             @Override
@@ -135,12 +243,12 @@ public class DriveServiceHelper {
         return ret;
     }
 
-    public void createFolderAndUpload(String folderName,String fileName, String data) {
+    public void createFolderAndUpload(String folderName, String fileName, String data) {
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
 
-                Log.i(TAG,"start folder");
+                Log.i(TAG,"start folder "+folderName);
 
                 try {
 
@@ -149,6 +257,9 @@ public class DriveServiceHelper {
                             .setQ("mimeType = '" + "application/vnd.google-apps.folder" + "' and name = '" + folderName + "' ")
                             .setSpaces("drive")
                             .execute();
+
+                    Log.i(TAG,"loading folder");
+
 
                     for (File aFile:result.getFiles()
                          ) {
@@ -281,237 +392,4 @@ public class DriveServiceHelper {
 
     }
 
-
-
-
-/*
-    public Task<GoogleDriveFileHolder> searchFolder(String folderName) {
-        return Tasks.call(mExecutor, () -> {
-
-            // Retrive the metadata as a File object.
-            FileList result = mDriveService.files().list()
-                    .setQ("mimeType = '" + "application/vnd.google-apps.folder" + "' and name = '" + folderName + "' ")
-                    .setSpaces("drive")
-                    .execute();
-            GoogleDriveFileHolder googleDriveFileHolder = new GoogleDriveFileHolder();
-            if (result.getFiles().size() > 0) {
-                googleDriveFileHolder.setId(result.getFiles().get(0).getId());
-                googleDriveFileHolder.setName(result.getFiles().get(0).getName());
-
-            }
-            return googleDriveFileHolder;
-        });
-    }
-    public Task<GoogleDriveFileHolder> createFolder(String folderName, @Nullable String folderId) {
-        return Tasks.call(mExecutor, () -> {
-
-            GoogleDriveFileHolder googleDriveFileHolder = new GoogleDriveFileHolder();
-
-            List<String> root;
-            if (folderId == null) {
-                root = Collections.singletonList("root");
-            } else {
-
-                root = Collections.singletonList(folderId);
-            }
-            File metadata = new File()
-                    .setParents(root)
-                    .setMimeType("application/vnd.google-apps.folder")
-                    .setName(folderName);
-
-            File googleFile = mDriveService.files().create(metadata).execute();
-            if (googleFile == null) {
-                throw new IOException("Null result when requesting file creation.");
-            }
-            googleDriveFileHolder.setId(googleFile.getId());
-            return googleDriveFileHolder;
-        });
-    }
-
-
-    public Task<Void> downloadFile(java.io.File targetFile, String fileId) {
-        return Tasks.call(mExecutor, () -> {
-            // Retrieve the metadata as a File object.
-            OutputStream outputStream = new FileOutputStream(targetFile);
-            mDriveService.files().get(fileId).executeMediaAndDownloadTo(outputStream);
-            return null;
-        });
-    }
-
-    public Task<Void> deleteFolderFile(String fileId) {
-        return Tasks.call(mExecutor, () -> {
-            // Retrieve the metadata as a File object.
-            if (fileId != null) {
-                mDriveService.files().delete(fileId).execute();
-            }
-
-            return null;
-
-        });
-    }
-    public Task<GoogleDriveFileHolder> uploadFile(File googleDiveFile, AbstractInputStreamContent content) {
-        return Tasks.call(mExecutor, () -> {
-            // Retrieve the metadata as a File object.
-            File fileMeta = mDriveService.files().create(googleDiveFile, content).execute();
-            GoogleDriveFileHolder googleDriveFileHolder = new GoogleDriveFileHolder();
-            googleDriveFileHolder.setId(fileMeta.getId());
-            googleDriveFileHolder.setName(fileMeta.getName());
-            return googleDriveFileHolder;
-        });
-    }
-
-
-    public Task<GoogleDriveFileHolder> createTextFile(String fileName, String content, @Nullable String folderId) {
-        return Tasks.call(mExecutor, () -> {
-
-
-            List<String> root;
-            if (folderId == null) {
-                root = Collections.singletonList("root");
-            } else {
-
-                root = Collections.singletonList(folderId);
-            }
-
-            File metadata = new File()
-                    .setParents(root)
-                    .setMimeType("text/plain")
-                    .setName(fileName);
-            ByteArrayContent contentStream = ByteArrayContent.fromString("text/plain", content);
-
-            File googleFile = mDriveService.files().create(metadata, contentStream).execute();
-            if (googleFile == null) {
-                throw new IOException("Null result when requesting file creation.");
-            }
-            GoogleDriveFileHolder googleDriveFileHolder = new GoogleDriveFileHolder();
-            googleDriveFileHolder.setId(googleFile.getId());
-            return googleDriveFileHolder;
-        });
-    }
-
-    public Task<GoogleDriveFileHolder> searchFile(String fileName, String mimeType) {
-        return Tasks.call(mExecutor, () -> {
-
-            FileList result = mDriveService.files().list()
-                    .setQ("name = '" + fileName + "' and mimeType ='" + mimeType + "'")
-                    .setSpaces("drive")
-                    .setFields("files(id, name,size,createdTime,modifiedTime,starred)")
-                    .execute();
-            GoogleDriveFileHolder googleDriveFileHolder = new GoogleDriveFileHolder();
-            if (result.getFiles().size() > 0) {
-
-                googleDriveFileHolder.setId(result.getFiles().get(0).getId());
-                googleDriveFileHolder.setName(result.getFiles().get(0).getName());
-                googleDriveFileHolder.setModifiedTime(result.getFiles().get(0).getModifiedTime());
-                googleDriveFileHolder.setSize(result.getFiles().get(0).getSize());
-            }
-
-
-            return googleDriveFileHolder;
-        });
-    }
-
-
-
-
-    public Task<String> createFile() {
-        return Tasks.call(mExecutor, () -> {
-            File metadata = new File()
-                    .setParents(Collections.singletonList("root"))
-                    .setMimeType("text/plain")
-                    .setName("Untitled file");
-
-            File googleFile = mDriveService.files().create(metadata).execute();
-            if (googleFile == null) {
-                throw new IOException("Null result when requesting file creation.");
-            }
-
-            return googleFile.getId();
-        });
-    }
-
-
-    public Task<Pair<String, String>> readFile(String fileId) {
-        return Tasks.call(mExecutor, () -> {
-            // Retrieve the metadata as a File object.
-            File metadata = mDriveService.files().get(fileId).execute();
-            String name = metadata.getName();
-
-            // Stream the file contents to a String.
-            try (InputStream is = mDriveService.files().get(fileId).executeMediaAsInputStream();
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                StringBuilder stringBuilder = new StringBuilder();
-                String line;
-
-                while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line);
-                }
-                String contents = stringBuilder.toString();
-
-                return Pair.create(name, contents);
-            }
-        });
-    }
-
-
-    public Task<Void> saveFile(String fileId, String name, String content) {
-        return Tasks.call(mExecutor, () -> {
-            // Create a File containing any metadata changes.
-            File metadata = new File().setName(name);
-
-            // Convert content to an AbstractInputStreamContent instance.
-            ByteArrayContent contentStream = ByteArrayContent.fromString("text/plain", content);
-
-            // Update the metadata and contents.
-            mDriveService.files().update(fileId, metadata, contentStream).execute();
-            return null;
-        });
-    }
-
-
-    public Task<FileList> queryFiles() {
-        return Tasks.call(mExecutor, () ->
-                mDriveService.files().list().setSpaces("drive").execute());
-    }
-
-
-    public Intent createFilePickerIntent() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("text/plain");
-
-        return intent;
-    }
-
-
-    public Task<Pair<String, String>> openFileUsingStorageAccessFramework(
-            ContentResolver contentResolver, Uri uri) {
-        return Tasks.call(mExecutor, () -> {
-            // Retrieve the document's display name from its metadata.
-            String name;
-            try (Cursor cursor = contentResolver.query(uri, null, null, null, null)) {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    name = cursor.getString(nameIndex);
-                } else {
-                    throw new IOException("Empty cursor returned for file.");
-                }
-            }
-
-            // Read the document's contents as a String.
-            String content;
-            try (InputStream is = contentResolver.openInputStream(uri);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                StringBuilder stringBuilder = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line);
-                }
-                content = stringBuilder.toString();
-            }
-
-            return Pair.create(name, content);
-        });
-    }
-    */
 }

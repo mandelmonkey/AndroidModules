@@ -24,11 +24,37 @@ import lndmobile.Callback;
 import lndmobile.Lndmobile;
 import lndmobile.SendStream;
 
-import android.util.Log;
+
+import lndmobile.RecvStream;
+
 
 
 public class LndMobileWrapper {
 
+
+    private static final String streamEventName = "streamEvent";
+    private static final String streamIdKey = "streamId";
+    private static final String respB64DataKey = "data";
+    private static final String respErrorKey = "error";
+    private static final String respEventTypeKey = "event";
+    private static final String respEventTypeData = "data";
+    private static final String respEventTypeError = "error";
+    private static final String logEventName = "logs";
+
+
+
+    static class ReceiveStream implements RecvStream {
+
+        @Override
+        public void onError(Exception e) {
+
+        }
+
+        @Override
+        public void onResponse(byte[] bytes) {
+
+        }
+    }
 
     public LndMobileWrapper() {
 
@@ -83,7 +109,8 @@ public class LndMobileWrapper {
         Runnable startLnd = new Runnable() {
             @Override
             public void run() {
-                Lndmobile.start(appDir+"", new Callback() {
+                String args = "--lnddir=" + appDir;
+                Lndmobile.start(args, new Callback() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -630,13 +657,13 @@ public class LndMobileWrapper {
         new Thread(runner).start();
 
     }
-
+/*
     public static void subscribeSingleInvoice(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
             @Override
             public void run() {
-                Lndmobile.subscribeSingleInvoice(request, new Callback() {
+                Lndmobile.subscribeSingleInvoice(request, new ReceiveStream() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -674,13 +701,14 @@ public class LndMobileWrapper {
         new Thread(runner).start();
 
     }
-
+*/
     public static void subscribeInvoices(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
             @Override
             public void run() {
-                Lndmobile.subscribeInvoices(request, new Callback() {
+
+                Lndmobile.subscribeInvoices(request, new ReceiveStream() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -720,6 +748,96 @@ public class LndMobileWrapper {
 
     }
 
+    public static void verifyMessage(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.verifyMessage(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+    public static void signMessage(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.signMessage(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+/*
     public static void settleInvoice(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
@@ -763,8 +881,8 @@ public class LndMobileWrapper {
         };
         new Thread(runner).start();
 
-    }
-
+    }*/
+/*
     public static void cancelInvoice(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
@@ -809,8 +927,8 @@ public class LndMobileWrapper {
         new Thread(runner).start();
 
     }
-
-
+*/
+/*
     public static void addHoldInvoice(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
@@ -855,7 +973,7 @@ public class LndMobileWrapper {
         new Thread(runner).start();
 
     }
-
+*/
     public static void addInvoice(final byte[] request, final CallbackInterface callback){
 
 
@@ -1183,7 +1301,7 @@ Runnable runner = new Runnable() {
         Runnable runner = new Runnable() {
             @Override
             public void run() {
-                Lndmobile.openChannel(request, new Callback() {
+                Lndmobile.openChannel(request, new ReceiveStream() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -1276,7 +1394,7 @@ Runnable runner = new Runnable() {
                 public void run() {
                     try {
 
-                   SendStream sendStream = Lndmobile.sendPayment(new Callback() {
+                   SendStream sendStream = Lndmobile.sendPayment(new ReceiveStream() {
                         @Override
                         public void onError(Exception e) {
                             try {
@@ -1376,7 +1494,7 @@ Runnable runner = new Runnable() {
         Runnable runner = new Runnable() {
             @Override
             public void run() {
-                Lndmobile.closeChannel(request, new Callback() {
+                Lndmobile.closeChannel(request, new ReceiveStream() {
                     @Override
                     public void onError(Exception e) {
                         try {
@@ -1461,12 +1579,103 @@ Runnable runner = new Runnable() {
 
     }
 
+
+    public static void estimateFee(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.estimateFee(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
     public static void connectPeer(final byte[] request, final CallbackInterface callback){
 
         Runnable runner = new Runnable() {
             @Override
             public void run() {
                 Lndmobile.connectPeer(request, new Callback() {
+                    @Override
+                    public void onError(Exception e) {
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", true);
+                            json.put("response", e.getLocalizedMessage());
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+                    }
+
+                    @Override
+                    public void onResponse(byte[] bytes) {
+
+                        String b64 = "";
+                        if (bytes != null && bytes.length > 0) {
+                            b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                        }
+                        try {
+                            JSONObject json = new JSONObject();
+                            json.put("error", false);
+                            json.put("response", b64);
+
+                            callback.eventFired(json.toString());
+                        } catch (Exception e2) {
+                            callback.eventFired("");
+                        }
+
+                    }
+                });
+
+            }
+        };
+        new Thread(runner).start();
+
+    }
+
+    public static void addTower(final byte[] request, final CallbackInterface callback){
+
+        Runnable runner = new Runnable() {
+            @Override
+            public void run() {
+                Lndmobile.addTower(request, new Callback() {
                     @Override
                     public void onError(Exception e) {
                         try {

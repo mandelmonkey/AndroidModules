@@ -9,8 +9,8 @@ import android.webkit.WebView;
 import android.widget.RelativeLayout;
 
 //import com.indiesquare.customwebview.CustomWebView;
-import com.indiesquare.websocket.websocket;
-
+//import com.indiesquare.websocket.websocket;
+import com.mandelduck.lnbluetooth.*;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,7 +29,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+      com.mandelduck.lnbluetooth.BluetoothController.sendMessage("hello-this-is-a-really-long-word-lets-see-how-long-it-can-get-yes-lets-see-how-long-it-is");
 
+
+      /*
         final websocket wsss = new websocket(this);
 
         com.indiesquare.websocket.CallbackInterface myCallback2 = new com.indiesquare.websocket.CallbackInterface() {
@@ -68,6 +71,7 @@ try {
 catch (Exception e){
 
 }
+*/
 /*
          CallbackInterface myCallback = new CallbackInterface() {
             @Override
