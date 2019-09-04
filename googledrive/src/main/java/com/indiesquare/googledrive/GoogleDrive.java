@@ -12,7 +12,15 @@ import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.DriveScopes;
+
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class GoogleDrive extends Activity implements ServiceListener {
 
@@ -38,6 +46,61 @@ public class GoogleDrive extends Activity implements ServiceListener {
 
     }
 
+    public boolean unpackZip(String zipname, CallbackInterface callback)
+    {
+        String path =  activity.getApplicationContext().getNoBackupFilesDir().getPath()+"/";
+        String outputPath = path+"bitcoinDirec/";
+        InputStream is;
+        ZipInputStream zis;
+        int current = 0;
+        try
+        {
+            String filename;
+
+            java.io.File file = new java.io.File(path + zipname);
+            is = new FileInputStream(path + zipname);
+            zis = new ZipInputStream(new BufferedInputStream(is));
+            ZipEntry ze;
+            byte[] buffer = new byte[1024];
+            int count;
+
+            while ((ze = zis.getNextEntry()) != null)
+            {
+                filename = ze.getName();
+
+                // Need to create directories if not exists, or
+                // it will generate an Exception...
+                Log.i(TAG,"unzipping file "+outputPath+filename);
+                if (ze.isDirectory()) {
+                    java.io.File fmd = new java.io.File(outputPath+filename);
+                    fmd.mkdirs();
+                    continue;
+                }
+                Log.i(TAG,"here2");
+                FileOutputStream fout = new FileOutputStream(outputPath+filename);
+                Log.i(TAG,"here3");
+                while ((count = zis.read(buffer)) != -1)
+                {
+                    current += ze.getCompressedSize();
+                    callback.eventFired(null,"unzipProgress"+current+"/"+file.length());
+                    fout.write(buffer, 0, count);
+                }
+
+                fout.close();
+                zis.closeEntry();
+            }
+
+            zis.close();
+            callback.eventFired(null,"unzipFinished");
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
 
     public void uploadFile(String theAppName, String theFolderName, String theFilename, String theData, CallbackInterface callback){
 
@@ -232,9 +295,8 @@ public class GoogleDrive extends Activity implements ServiceListener {
 
         GoogleAccountCredential credential =
                 GoogleAccountCredential.usingOAuth2(
-                        activity.getApplicationContext(), Collections.singleton(DriveScopes.DRIVE_FILE));
+                        activity.getApplicationContext(), Collections.singleton(DriveScopes.DRIVE));
         credential.setSelectedAccount(account.getAccount());
-
 
         com.google.api.services.drive.Drive googleDriveService =
                 new com.google.api.services.drive.Drive.Builder(

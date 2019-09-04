@@ -224,6 +224,103 @@ public class BluetoothController {
 
         }
 
+        public static void sendTestMessageAndReceive(){
+
+
+
+
+
+
+        }
+
+
+        public static void fakeReceive(int step){
+           // byte[] bytes = new byte[]{2, 49, 50, 51, 52, 44, 54, 48, 44, 66, 76, 69, 3};
+            byte[] bytes = null;
+            if(step == 1) {
+                 bytes = new byte[]{2, 49, 48, 48, 48, 48, 44, 51, 54, 48, 48, 44, 98};
+            }else {
+
+
+                 bytes = new byte[]{114, 101, 110, 100, 32, 99, 111, 102, 102, 101, 101, 3};
+            }
+            String s1 = new String(bytes, StandardCharsets.UTF_8);
+            Log.i(TAG,"string is "+s1);
+
+            int startIndex = 0;
+            int endIndex = bytes.length;
+
+            if(bytes[0] == START_FLAG){
+                currentRecvMessage = new ArrayList<Byte>();
+                startIndex = 1;
+                Log.i(TAG,"found start flag");
+
+            }
+
+            if(bytes[bytes.length-1] == END_FLAG){
+                endIndex = bytes.length-1;
+                Log.i(TAG,"found end flag");
+            }
+
+            for(int i = startIndex;i<endIndex;i++){
+                Log.i(TAG,"adding byte "+bytes[i]);
+                currentRecvMessage.add(bytes[i]);
+            }
+
+            if(endIndex != bytes.length){
+
+                byte[] finalString = new byte[currentRecvMessage.size()];
+
+                for(int i = 0;i<currentRecvMessage.size();i++){
+                    finalString[i] = currentRecvMessage.get(i);
+                }
+
+                Log.i(TAG,"finalString "+finalString.length+" "+finalString);
+
+                String s = new String(finalString, StandardCharsets.UTF_8);
+
+                try {
+                    JSONObject obj = new JSONObject();
+                    obj.put("type", "createInvoice");
+                    obj.put("data", s);
+                    currentCallback.eventFired(obj.toString());
+                } catch (Exception e) {
+                    Log.e(TAG,e.getLocalizedMessage());
+                }
+
+            }
+        }
+
+    public static void testSendMessageBytes(){
+        byte[] messageBytes = new byte[]{2, 49, 50, 51, 52, 44, 54, 48, 44, 66, 76, 69, 3};
+        int MTU = 20;
+
+
+            byte[] formatted = new byte[messageBytes.length+2];
+            formatted[0] = START_FLAG;
+            formatted[formatted.length-1] = END_FLAG;
+
+            for(int i=0;i<messageBytes.length;i++){
+                formatted[i+1] = messageBytes[i];
+            }
+
+            int sliceAmount = MTU;
+            if(sliceAmount > formatted.length){
+                sliceAmount =formatted.length;
+            }
+
+            byte[] slice = Arrays.copyOfRange(formatted, 0, sliceAmount);
+
+            currentChunk = slice;
+            currentMessage = formatted;
+
+
+                testReceive(currentChunk);
+
+
+
+
+    }
     public static void sendMessage(String message){
 
         int MTU = 20;
@@ -388,7 +485,7 @@ public class BluetoothController {
                             }
 
                             if(bytes[bytes.length-1] == END_FLAG){
-                                startIndex = 0;
+                                //startIndex = 0; because if only one chunk then startIndex needs to start from not 0
                                 endIndex = bytes.length-1;
                             }
 

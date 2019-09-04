@@ -50,11 +50,69 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import com.google.api.client.googleapis.media.*;
+
+import org.json.JSONObject;
 
 /**
  * A utility for performing read/write operations on Drive files via the REST API and opening a
  * file picker UI via Storage Access Framework.
  */
+
+//custom listener for download progress
+class DownloadProgressListener implements MediaHttpDownloaderProgressListener{
+    private String TAG = "DownloadProgressListener";
+
+    public CallbackInterface mCallback;
+
+    public void setCallback(CallbackInterface callback){
+        mCallback = callback;
+    }
+
+    @Override
+    public void progressChanged(MediaHttpDownloader downloader) throws IOException {
+        switch (downloader.getDownloadState()){
+
+            //Called when file is still downloading
+            //ONLY CALLED AFTER A CHUNK HAS DOWNLOADED,SO SET APPROPRIATE CHUNK SIZE
+            case MEDIA_IN_PROGRESS:
+                Log.i(TAG, "downloader.getProgress"+downloader.getProgress());
+
+               try {
+                   JSONObject obj = new JSONObject();
+                   obj.put("type", "download");
+                   obj.put("progress", downloader.getProgress());
+                   obj.put("complete", false);
+                   obj.toString();
+                   mCallback.eventFired(null, obj.toString());
+               }
+               catch(Exception e){
+                   e.printStackTrace();
+               }
+
+                //Add code for showing progress
+                break;
+            //Called after download is complete
+            case MEDIA_COMPLETE:
+                try {
+                    JSONObject obj = new JSONObject();
+                    obj.put("type", "download");
+                    obj.put("progress", downloader.getProgress());
+                    obj.put("complete", true);
+                    obj.toString();
+                    mCallback.eventFired(null, obj.toString());
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+
+                //Add code for download completion
+                break;
+        }
+    }
+}
+
+
 public class DriveServiceHelper {
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private final Drive mDriveService;
@@ -73,7 +131,7 @@ public class DriveServiceHelper {
             @Override
             public void run() {
 
-                Log.i(TAG,"start file download");
+                Log.i(TAG,"start zip file download");
 
                 try {
 
@@ -85,19 +143,17 @@ public class DriveServiceHelper {
                         Log.i(TAG, "found file with name " + aFile.getName() + " " + fileName);
                         if(aFile.getName().equals(fileName)) {
                             Log.i(TAG, "downloading file " + aFile.getName() + " " + fileName);
-                            String path = context.getNoBackupFilesDir().getPath()+"/fileName.zip";
+                            String path = context.getNoBackupFilesDir().getPath()+"/" +fileName;
                             Log.i(TAG,"path is "+path);
                             OutputStream out = new FileOutputStream(path);
 
 
-                            mDriveService.files().get(aFile.getId())
-                                    .executeMediaAndDownloadTo(out);
+                            Drive.Files.Get request = mDriveService.files().get(aFile.getId());
+                            DownloadProgressListener lis =new DownloadProgressListener();
+                             lis.setCallback(mController.mCallback);
+                            request.getMediaHttpDownloader().setProgressListener(lis).setChunkSize(1000000);
 
-
-
-
-
-
+                            request.executeMediaAndDownloadTo(out);
 
 
                         }
@@ -105,13 +161,14 @@ public class DriveServiceHelper {
                     }
 
 
+                    Log.i(TAG, "file not found");
 
                     mController.fileDownloadError("file not found");
 
 
                 }
                 catch(Exception e){
-                    Log.e(TAG,e.getLocalizedMessage());
+                    e.printStackTrace();
                     mController.fileDownloadError(e.getLocalizedMessage());
                 }
             }
@@ -121,52 +178,7 @@ public class DriveServiceHelper {
 
 
     }
-    public boolean unpackZip(String path, String zipname)
-    {
-        InputStream is;
-        ZipInputStream zis;
-        try
-        {
-            String filename;
-            is = new FileInputStream(path + zipname);
-            zis = new ZipInputStream(new BufferedInputStream(is));
-            ZipEntry ze;
-            byte[] buffer = new byte[1024];
-            int count;
 
-            while ((ze = zis.getNextEntry()) != null)
-            {
-                filename = ze.getName();
-
-                // Need to create directories if not exists, or
-                // it will generate an Exception...
-                if (ze.isDirectory()) {
-                    java.io.File fmd = new java.io.File(path + filename);
-                    fmd.mkdirs();
-                    continue;
-                }
-
-                FileOutputStream fout = new FileOutputStream(path + filename);
-
-                while ((count = zis.read(buffer)) != -1)
-                {
-                    fout.write(buffer, 0, count);
-                }
-
-                fout.close();
-                zis.closeEntry();
-            }
-
-            zis.close();
-        }
-        catch(IOException e)
-        {
-            e.printStackTrace();
-            return false;
-        }
-
-        return true;
-    }
     public void downloadFile(String folderName,String fileName) {
         Thread t1 = new Thread(new Runnable() {
             @Override

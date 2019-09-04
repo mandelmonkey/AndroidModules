@@ -33,7 +33,7 @@ public class GoogleDriveService {
         Log.i(TAG,"create client");
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestScopes( new Scope("https://www.googleapis.com/auth/drive.file")) // "https://www.googleapis.com/auth/plus.login"
+                .requestScopes( new Scope("https://www.googleapis.com/auth/drive")) // "https://www.googleapis.com/auth/plus.login"
                 .requestEmail()
                 .build();
 
@@ -61,7 +61,7 @@ public class GoogleDriveService {
         Log.i(TAG,"check login");
 
         List<Scope> requiredScopes = new ArrayList<>();
-        requiredScopes.add(new Scope("https://www.googleapis.com/auth/drive.file"));
+        requiredScopes.add(new Scope("https://www.googleapis.com/auth/drive"));
         Log.i(TAG,"check login2");
 
         GoogleSignInAccount signInAccount = GoogleSignIn.getLastSignedInAccount(activity.getApplicationContext());
@@ -83,7 +83,7 @@ public class GoogleDriveService {
     }
 
     public void auth(){
-        Log.i(TAG,"startin auth");
+        Log.i(TAG,"starting auth");
 
          activity.startActivityForResult(googleSignInClient.getSignInIntent(), REQUEST_CODE_SIGN_IN);
 
