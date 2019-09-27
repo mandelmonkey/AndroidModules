@@ -81,6 +81,7 @@ public class PowerBroadcastReceiver extends BroadcastReceiver {
     }
 
     private void startCore(final Context c) {
+        Log.i(TAG,"starting core");
         setMagicallyStarted(c, true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             c.startForegroundService(new Intent(c, ABCoreService.class));

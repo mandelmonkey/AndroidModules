@@ -13,14 +13,21 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccoun
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.DriveScopes;
 
+import org.json.JSONObject;
+
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.nio.channels.FileChannel;
+import java.io.File;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+
+
 
 public class GoogleDrive extends Activity implements ServiceListener {
 
@@ -36,6 +43,8 @@ public class GoogleDrive extends Activity implements ServiceListener {
     public String fileData;
     public String appName;
     public boolean isOpen;
+    public double  unzipProgress;
+    public double  downloadProgress;
     public CallbackInterface mCallback;
     public GoogleDrive(final Activity currentActivity){
 
@@ -45,61 +54,173 @@ public class GoogleDrive extends Activity implements ServiceListener {
 
 
     }
+    public double getDownloadProgress(){
+        return downloadProgress;
+    }
 
-    public boolean unpackZip(String zipname, CallbackInterface callback)
+    public double setDownloadProgress(){
+        return downloadProgress;
+    }
+    public boolean isWifi(){
+
+        ConnectivityManager connManager = (ConnectivityManager) getSystemService(activity.getApplicationContext().CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+        return mWifi.isConnected();
+    }
+
+    public void unpackZip(String zipname, CallbackInterface callback)
     {
-        String path =  activity.getApplicationContext().getNoBackupFilesDir().getPath()+"/";
-        String outputPath = path+"bitcoinDirec/";
-        InputStream is;
-        ZipInputStream zis;
-        int current = 0;
-        try
-        {
-            String filename;
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String network = "";
 
-            java.io.File file = new java.io.File(path + zipname);
-            is = new FileInputStream(path + zipname);
-            zis = new ZipInputStream(new BufferedInputStream(is));
-            ZipEntry ze;
-            byte[] buffer = new byte[1024];
-            int count;
+                unzipProgress = 0;
 
-            while ((ze = zis.getNextEntry()) != null)
-            {
-                filename = ze.getName();
+                if(zipname.equals("testnet3.zip")){
+                    network = "testnet3";
 
-                // Need to create directories if not exists, or
-                // it will generate an Exception...
-                Log.i(TAG,"unzipping file "+outputPath+filename);
-                if (ze.isDirectory()) {
-                    java.io.File fmd = new java.io.File(outputPath+filename);
-                    fmd.mkdirs();
-                    continue;
-                }
-                Log.i(TAG,"here2");
-                FileOutputStream fout = new FileOutputStream(outputPath+filename);
-                Log.i(TAG,"here3");
-                while ((count = zis.read(buffer)) != -1)
-                {
-                    current += ze.getCompressedSize();
-                    callback.eventFired(null,"unzipProgress"+current+"/"+file.length());
-                    fout.write(buffer, 0, count);
+                }else if(zipname.equals("mainnet.zip")){
+                    network = "mainnet";
                 }
 
-                fout.close();
-                zis.closeEntry();
+
+                Log.i(TAG,"network is "+network+" "+zipname);
+
+                String path = activity.getApplicationContext().getNoBackupFilesDir().getPath() + "/";
+                String outputPath = path + "bitcoinDirec/";
+
+                if(network.equals("testnet3")) {
+                    File directory = new File(outputPath +  network);
+                    if (!directory.exists()) {
+                        directory.mkdir();
+                        Log.i(TAG, "making directory " + outputPath +  network);
+                    }
+                }
+
+
+                FileInputStream is;
+                ZipInputStream zis;
+                try {
+                    String filename;
+                    Log.i(TAG,"file info "+path + zipname);
+                    java.io.File file = new java.io.File(path + zipname);
+
+                    is = new FileInputStream(file.getCanonicalFile());
+
+                    FileChannel channel = is.getChannel();
+
+                    zis = new ZipInputStream(new BufferedInputStream(is));
+
+                    ZipEntry ze;
+                    byte[] buffer = new byte[1024];
+                    int count = 0;
+
+                    boolean foundValidFile = false;
+
+                    try {
+
+                        foundValidFile = true;
+                        double progress = (double)channel.position() / (double)file.length();
+                        Log.i(TAG, "unzipProgress " + progress + channel.position() + "/" + file.length());
+
+
+                        JSONObject obj = new JSONObject();
+                        obj.put("type", "unzip");
+                        obj.put("progress", unzipProgress);
+                        obj.put("complete", false);
+
+                        callback.eventFired(null, obj.toString());
+                    } catch (Exception e) {
+                        Log.e(TAG,"progress error");
+                        e.printStackTrace();
+
+                    }
+
+                    while ((ze = zis.getNextEntry()) != null) {
+                        filename = ze.getName();
+
+                        // Need to create directories if not exists, or
+                        // it will generate an Exception...
+
+                        String fullOutputPath =  outputPath + filename;
+
+                        if(network.equals("mainnet")) {
+                            fullOutputPath = fullOutputPath.replace("mainnet/", "");
+                        }else {
+
+                            if (!filename.startsWith(network + "/")) {
+                                Log.i(TAG, "file is not valid");
+                                continue;
+                            }
+                        }
+                        Log.i(TAG, "unzipping file "+filename+"   to   " +fullOutputPath );
+                        if (ze.isDirectory()) {
+                            java.io.File fmd = new java.io.File(fullOutputPath );
+                            fmd.mkdirs();
+                            continue;
+                        }
+
+                        FileOutputStream fout = new FileOutputStream(fullOutputPath );
+
+                        while ((count = zis.read(buffer)) != -1) {
+                            unzipProgress = (double)channel.position() / (double)file.length();
+
+/*
+                            try {
+
+                                double progress = (double)channel.position() / (double)file.length();
+                                Log.i(TAG, "unzipProgress " + progress + channel.position() + "/" + file.length());
+
+
+                                JSONObject obj = new JSONObject();
+                                obj.put("type", "unzip");
+                                obj.put("progress", progress);
+                                obj.put("complete", false);
+
+                                callback.eventFired(null, obj.toString());
+                            } catch (Exception e) {
+                                Log.e(TAG,"progress error");
+                                e.printStackTrace();
+
+                            }*/
+
+                            fout.write(buffer, 0, count);
+                        }
+
+                        fout.close();
+                        zis.closeEntry();
+                    }
+
+                    zis.close();
+                    try {
+
+
+                        if(unzipProgress > 0) {
+                            JSONObject obj = new JSONObject();
+                            obj.put("type", "unzip");
+                            obj.put("progress", 1);
+                            obj.put("complete", true);
+
+                            callback.eventFired(null, obj.toString());
+                        }else{
+                            callback.eventFired("file not found", null);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG,"json error");
+                        e.printStackTrace();
+
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG,"file error");
+                    e.printStackTrace();
+
+                }
+
             }
-
-            zis.close();
-            callback.eventFired(null,"unzipFinished");
-        }
-        catch(IOException e)
-        {
-            e.printStackTrace();
-            return false;
-        }
-
-        return true;
+        });
+        thread.start();
     }
 
     public void uploadFile(String theAppName, String theFolderName, String theFilename, String theData, CallbackInterface callback){

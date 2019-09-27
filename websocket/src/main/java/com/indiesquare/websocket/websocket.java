@@ -9,6 +9,11 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.security.KeyStore;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -72,6 +77,53 @@ public class websocket {
             }*/
 
             Log.i(TAG,"starta: "+uri);
+
+            SSLContext sslContext = null;
+            try {
+                sslContext = SSLContext.getInstance( "TLS" );
+                sslContext.init( null, null, null ); // will use java's default key and trust store which is sufficient unless you deal with self-signed certificates
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+cc.setSocketFactory(new SSLSocketFactory() {
+    @Override
+    public String[] getDefaultCipherSuites() {
+    }
+
+    @Override
+    public String[] getSupportedCipherSuites() {
+        return new String[0];
+    }
+
+    @Override
+    public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
+        return null;
+    }
+
+    @Override
+    public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
+        return null;
+    }
+
+    @Override
+    public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
+        return null;
+    }
+
+    @Override
+    public Socket createSocket(InetAddress host, int port) throws IOException {
+        return null;
+    }
+
+    @Override
+    public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
+        return null;
+    }
+});
+           cc.setWebSocketFactory( new DefaultSSLWebSocketClientFactory( sslContext ) );
+
             cc = new WebSocketClient( new URI( uri ) ) {
 
                 @Override

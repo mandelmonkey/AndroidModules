@@ -105,10 +105,10 @@ public class RPCIntentService extends IntentService {
     }
 
     private void broadcastPeerlist() throws IOException {
-        final BitcoindRpcClient bitcoin = getRpc();
+       /*  final BitcoindRpcClient bitcoin = getRpc();
 
         final Intent broadcastIntent = new Intent();
-      /*  broadcastIntent.setAction(MainActivity.RPCResponseReceiver.ACTION_RESP);
+       broadcastIntent.setAction(MainActivity.RPCResponseReceiver.ACTION_RESP);
         broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
         broadcastIntent.putExtra(PARAM_OUT_MSG, "peerlist");
 
@@ -200,28 +200,27 @@ public class RPCIntentService extends IntentService {
     @Override
     protected void onHandleIntent(final Intent intent) {
 
-        if (intent.getStringExtra("stop") != null) {
-            while (true) {
-                try {
-                    getRpc().stop();
-                    break;
-                } catch (final BitcoinRPCException | IOException e) {
-                    try {
-                        Thread.sleep(200);
-                    } catch (final InterruptedException e1) {
-                        break;
-                    }
-                }
-            }
-            return;
-        }
 
 
-        final String console_request = intent.getStringExtra("CONSOLE_REQUEST");
+
+        String console_request = intent.getStringExtra("CONSOLE_REQUEST");
+
+
 
         if (console_request != null) {
 
+            if(console_request.equals("submitblock")){
+
+                    String blockHex = MainController.mBlockHex;
+                    console_request = console_request + " " + blockHex;
+                    Log.i(TAG,"blockHex is"+blockHex.length());
+                    Log.i(TAG,"console_request "+ console_request);
+
+            }
+
             try {
+                Log.i(TAG,"getting rpc ");
+
                 String rpcUrl = getRpcUrl();
 
                 Log.i(TAG,"rpc url is "+rpcUrl);
@@ -295,7 +294,6 @@ public class RPCIntentService extends IntentService {
                                             JSONObject bbhObjectNew = new JSONObject();
                                             for(int i = startInt;i<endInt;i++){
                                                 String key = keys.getString(i);
-                                                Log.i(TAG,"KEY is:"+key);
                                                 bbhObjectNew.put(key,bbhObject.getString(key));
                                             }
 
@@ -373,9 +371,27 @@ public class RPCIntentService extends IntentService {
                 }
             }
 
+            /*
+            if (console_request.equals("stop")) {
+                while (true) {
+                    try {
+                        Log.i(TAG,"Stopping rpc");
+                        getRpc().stop();
+                        break;
+                    } catch (final BitcoinRPCException | IOException e) {
+                        try {
+                            Thread.sleep(200);
+                        } catch (final InterruptedException e1) {
+                            break;
+                        }
+                    }
+                }
+                return;
+            }*/
+
             return;
         }
-
+/*
         final String request = intent.getStringExtra("REQUEST");
 
         Log.i(TAG,"requested local onion "+request);
@@ -410,6 +426,9 @@ public class RPCIntentService extends IntentService {
             }
 
             broadcastError(i);
-        }
+        }*/
+
+
+
     }
 }

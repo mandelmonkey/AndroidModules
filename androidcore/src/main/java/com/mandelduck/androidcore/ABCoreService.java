@@ -13,13 +13,19 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
-
+import android.os.Bundle;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import java.util.Arrays;
+
+import java.util.List;
+
+import wf.bitcoin.javabitcoindrpcclient.BitcoinRPCException;
 
 public class ABCoreService extends Service {
 
@@ -45,7 +51,9 @@ public class ABCoreService extends Service {
         return null;
     }
 
-    private void setupNotificationAndMoveToForeground() {
+
+
+        private void setupNotificationAndMoveToForeground() {
         Log.i(TAG, "started");
 
         final Intent broadcastIntent = new Intent();
@@ -55,18 +63,26 @@ public class ABCoreService extends Service {
         sendBroadcast(broadcastIntent);
         Log.i(TAG, "started2");
 
+        Context cont = getBaseContext();
 
-        final Intent i = new Intent(this, MainController.class);
+        final Intent i = new Intent(cont, MainController.class);
+
+        Log.i(TAG, "started2.1");
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        final PendingIntent pI;
-        pI = PendingIntent.getActivity(this, 0, i, PendingIntent.FLAG_ONE_SHOT);
-        final NotificationManager nM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
+        Log.i(TAG, "started2.2");
+        final PendingIntent pI;
+        Log.i(TAG, "started3");
+        pI = PendingIntent.getActivity(cont, 0, i, PendingIntent.FLAG_ONE_SHOT);
+        Log.i(TAG, "started4");
+        final NotificationManager nM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        Log.i(TAG, "started5");
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(cont);
+        Log.i(TAG, "started6");
         final String version = com.mandelduck.androidcore.Packages.getVersion(prefs.getString("version", com.mandelduck.androidcore.Packages.BITCOIN_NDK));
 
-        final Notification.Builder b = new Notification.Builder(this)
+        final Notification.Builder b = new Notification.Builder(cont)
                 .setContentTitle("Nayuta Full Node Is Running")
                 .setContentIntent(pI)
                 .setContentText(String.format("Version %s", version))
@@ -117,10 +133,23 @@ public class ABCoreService extends Service {
     }
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Log.i(TAG, "started2");
-        if (mProcess != null || intent == null)
-            return START_STICKY;
 
+        Context cont = getBaseContext();
+        if(Utils.isDaemonInstalled(cont) == false){
+            Log.i(TAG,"bitcoind not installed");
+            return START_STICKY;
+        }
+        Log.i(TAG, "started 2");
+        if (mProcess != null) {
+
+            Log.i(TAG,"mProcess is not null");
+            return START_STICKY;
+        }
+
+        if(intent == null){
+            Log.i(TAG,"intent is null");
+            return START_STICKY;
+        }
 
         Log.i(TAG, "Core service msg");
 
@@ -153,12 +182,16 @@ public class ABCoreService extends Service {
                 @Override
                 public void onError(final String[] error) {
                     mProcess = null;
+
                     final StringBuilder bf = new StringBuilder();
                     for (final String e : error)
                         if (!TextUtils.isEmpty(e))
                             bf.append(String.format("%s%s", e, System.getProperty("line.separator")));
 
                     Log.i(TAG, bf.toString());
+
+                    Log.i(TAG, "stopping service");
+                    stopSelf();
                 }
             };
           //  final ProcessLogger torErrorGobbler = new ProcessLogger(mProcessTor.getErrorStream(), er);
@@ -173,14 +206,42 @@ public class ABCoreService extends Service {
             // used
 
 
-            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(cont);
             final String useDistribution = prefs.getString("usedistribution", "core");
             final String daemon = "liquid".equals(useDistribution) ? "liquidd" : "bitcoind";
-            final ProcessBuilder pb = new ProcessBuilder(
-                    String.format("%s/%s", path, daemon),
+
+            List<String> array = null;
+
+
+            Bundle extras = intent.getExtras();
+    boolean reindex = false;
+            if(extras == null) {
+                Log.i("Service","null");
+            } else {
+                Log.i("Service","not null");
+                reindex = (boolean) extras.get("reindex");
+
+
+            }
+
+
+                     array = Arrays.asList( String.format("%s/%s", path, daemon),
                     "--server=1",
-                    String.format("--datadir=%s", Utils.getDataDir(this)),
-                    String.format("--conf=%s", Utils.getBitcoinConf(this)));
+                    String.format("--datadir=%s", Utils.getDataDir(cont)),
+                    String.format("--conf=%s", Utils.getBitcoinConf(cont)));
+            if(reindex) {
+
+                Log.i("Service","starting with reindex");
+                array = Arrays.asList(String.format("%s/%s", path, daemon),
+                        "--server=1",
+                        "-reindex",
+                        String.format("--datadir=%s", Utils.getDataDir(cont)),
+                        String.format("--conf=%s", Utils.getBitcoinConf(cont)));
+            }
+
+
+            final ProcessBuilder pb = new ProcessBuilder(array);
+
 
             pb.directory(new File(path));
 
@@ -192,14 +253,36 @@ public class ABCoreService extends Service {
             errorGobbler.start();
             outputGobbler.start();
 
-            setupNotificationAndMoveToForeground();
+
+
+           try {
+
+
+               if(extras == null) {
+                   Log.i("Service","null");
+               } else {
+                   Log.i("Service","not null");
+                   boolean runInBackGround = (boolean) extras.get("startForeground");
+                   if(runInBackGround){
+                       setupNotificationAndMoveToForeground();
+                   }else{
+                       Log.i(TAG,"dont run in background");
+                   }
+
+               }
+
+           }
+           catch (Exception e){
+               e.printStackTrace();
+               Log.i(TAG,"app is not running so don't promote to foreground");
+           }
 
         } catch (final IOException e) {
             Log.i(TAG, "Native exception!");
             Log.i(TAG, e.getMessage());
 
             Log.i(TAG, e.getLocalizedMessage());
-            removeNotification(this);
+            removeNotification(cont);
             mProcess = null;
             mProcessTor = null;
             e.printStackTrace();
@@ -213,8 +296,7 @@ public class ABCoreService extends Service {
     public void onDestroy() {
         super.onDestroy();
 
-
-        final Intent i = new Intent(MainController.thisContext, RPCIntentService.class);
+        final Intent i = new Intent(getBaseContext(), RPCIntentService.class);
         i.putExtra("CONSOLE_REQUEST", "stop");
         MainController.thisContext.startService(i);
         if(timer != null) {
@@ -223,9 +305,11 @@ public class ABCoreService extends Service {
         Log.i(TAG, "destroying core service");
 
         if (mProcess != null) {
-            //mProcess.destroy();
+            mProcess.destroy();
+            mProcess = null;
+        }
+        if (mProcessTor != null) {
             mProcessTor.destroy();
-            //mProcess = null;
             mProcessTor = null;
         }
     }

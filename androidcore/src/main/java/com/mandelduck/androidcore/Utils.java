@@ -150,6 +150,12 @@ catch (Exception e){
         return String.format("%s/bitcoinDirec/bitcoin.conf", getDir(c).getAbsolutePath());
     }
 
+    static Boolean bitcoinConfExists(final Context c) {
+
+        File tempFile = new File(String.format("%s/bitcoinDirec/bitcoin.conf", getDir(c).getAbsolutePath()));
+        return tempFile.exists();
+    }
+
     static String getDataDir(final Context c) {
         final String defaultDataDir = String.format("%s/bitcoinDirec", getDir(c).getAbsolutePath());
         try {

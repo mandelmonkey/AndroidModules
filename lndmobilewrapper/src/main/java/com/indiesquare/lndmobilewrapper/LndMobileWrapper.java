@@ -60,7 +60,10 @@ public class LndMobileWrapper {
 
 
     }
-
+    public static void closeApp(){
+        android.os.Process.killProcess(android.os.Process.myPid());
+        System.exit(1);
+    }
     public static long checkStorage(){
         StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
 

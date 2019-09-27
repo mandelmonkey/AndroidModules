@@ -2,6 +2,7 @@ package com.mandelduck.androidcore;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationManager;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.BroadcastReceiver;
@@ -19,7 +20,13 @@ import android.util.Log;
 import android.view.View;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
+import android.app.ActivityManager;
 
+import android.app.ActivityManager.RunningServiceInfo;
+
+import android.app.Application;
+
+import android.app.PendingIntent;
 import org.apache.commons.compress.utils.IOUtils;
 import org.json.JSONObject;
 
@@ -36,6 +43,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import com.mandelduck.androidcore.ABCoreService;
 
 public class MainController {
     public static boolean HAS_BEEN_STARTED = false;
@@ -44,7 +52,10 @@ public class MainController {
     static String thisConfig;
     static Activity thisActivity;
     static CallbackInterface thisCallback;
+    public static String mBlockHex;
+    private final static int NOTIFICATION_ID = 922430164;
 
+    private static final String PARAM_OUT_MSG = "rpccore";
     private static RPCResponseReceiver mRpcResponseReceiver;
 
     public MainController() {
@@ -74,6 +85,25 @@ public class MainController {
 
         deleteRF(new File(dir, "liquidd"));
 
+        String pathMainnet = thisActivity.getApplicationContext().getNoBackupFilesDir().getPath() + "/mainnet.zip";
+        String pathTestnet = thisActivity.getApplicationContext().getNoBackupFilesDir().getPath() + "/testnet.zip";
+
+        String pathTestnet3 = thisActivity.getApplicationContext().getNoBackupFilesDir().getPath() + "/testnet3.zip";
+
+        File file = new File(pathMainnet);
+        if(file.exists()){
+            file.delete();
+        }
+
+        file = new File(pathTestnet);
+        if(file.exists()){
+            file.delete();
+        }
+
+        file = new File(pathTestnet3);
+        if(file.exists()){
+            file.delete();
+        }
 
     }
 
@@ -172,10 +202,9 @@ public class MainController {
 
     public static void stopCore(){
         final Intent i = new Intent(thisActivity, RPCIntentService.class);
-        i.putExtra("stop", "yep");
+        i.putExtra("CONSOLE_REQUEST", "stop");
         thisContext.startService(i);
 
-        thisContext.stopService(new Intent(thisContext, ABCoreService.class));
     }
 
 
@@ -200,6 +229,19 @@ public class MainController {
         thisContext.startService(i);
     }
 
+    public static void sendCommand(String command){
+        final Intent i = new Intent(thisContext, RPCIntentService.class);
+        i.putExtra("CONSOLE_REQUEST", command);
+        thisContext.startService(i);
+    }
+
+    public static void submitBlock(String blockHex){
+        mBlockHex = blockHex;
+        final Intent i = new Intent(thisContext, RPCIntentService.class);
+        i.putExtra("CONSOLE_REQUEST", "submitblock");
+        thisContext.startService(i);
+    }
+
     public static void generateBlock(){
         final Intent i = new Intent(thisContext, RPCIntentService.class);
         i.putExtra("CONSOLE_REQUEST", "generate 101");
@@ -210,47 +252,20 @@ public class MainController {
     }
     public static void configureCore(final Context c) throws IOException {
 
+
         final File coreConf = new File(Utils.getBitcoinConf(c));
-        //if (coreConf.exists())
-        //    return;
-        //noinspection ResultOfMethodCallIgnored
+
+        if(coreConf.exists())
+        return;
+
         coreConf.getParentFile().mkdirs();
 
         FileOutputStream outputStream;
 
         try {
 
-
             outputStream = new FileOutputStream(coreConf);
             outputStream.write(thisConfig.getBytes());
-
-           /* outputStream.write("listen=1\n".getBytes());
-
-            //outputStream.write("bind=127.0.0.1\n".getBytes());
-            outputStream.write("disablewallet=1\n".getBytes());
-            //outputStream.write("testnet=0\n".getBytes());
-            outputStream.write("testnet=1\n".getBytes());
-            //outputStream.write("addnode=192.168.2.47\n".getBytes());
-            outputStream.write("prune=550\n".getBytes());
-            //outputStream.write("regtest=1\n".getBytes());
-            outputStream.write("upnp=0\n".getBytes());
-            // don't attempt onion connections by default
-            outputStream.write("validatepegin=0\n".getBytes());
-            outputStream.write("lrequesting local oninonistenonion=1\n".getBytes());
-            outputStream.write("blocksonly=1\n".getBytes());
-
-            outputStream.write("dbcache=20\n".getBytes());
-            outputStream.write("maxsigcachesize=4\n".getBytes());
-                    outputStream.write("maxconnections=4\n".getBytes());
-                            outputStream.write("rpcthreads=1\n".getBytes());
-
-
-
-
-            // Afaik ipv6 is broken on android, disable by default, user can change this
-            // outputStream.write("onlynet=ipv6\n".getBytes());
-
-            */
 
             for (final File f : c.getExternalFilesDirs(null))
                 outputStream.write(String.format("# for external storage try: %s\n", f.getCanonicalPath()).getBytes());
@@ -270,24 +285,48 @@ public class MainController {
         Log.i(TAG,"requesting local oninon");
         thisContext.startService(i);
     }
-public static void sendMessage(String message){
-     thisCallback.eventFired(message);
-}
+    public static void sendMessage(String message){
+        thisCallback.eventFired(message);
+    }
+    public static boolean checkIfServiceIsRunning(String serviceClassName){
 
+
+        final ActivityManager activityManager = (ActivityManager)thisContext.getSystemService(Context.ACTIVITY_SERVICE);
+
+
+        final List<RunningServiceInfo> services = activityManager.getRunningServices(Integer.MAX_VALUE);
+
+        for (RunningServiceInfo runningServiceInfo : services) {
+            Log.i(TAG,"services "+runningServiceInfo.service.getClassName());
+            if (runningServiceInfo.service.getClassName().equals(serviceClassName)){
+
+                return true;
+            }
+        }
+
+        return false;
+    }
 public static void getProgress(){
     final Intent i = new Intent(thisContext, RPCIntentService.class);
     i.putExtra("REQUEST", "progress");
     thisContext.startService(i);
 }
-    public static void startCore(){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    public static void startCore(boolean reindex){
 
-            Log.i(TAG, "start");
-            thisContext.startForegroundService(new Intent(thisContext, ABCoreService.class));
+        Intent serviceIntent = new Intent(thisContext, ABCoreService.class);
+        serviceIntent.putExtra("startForeground", false);
 
-        } else {
-            thisContext.startService(new Intent(thisContext, ABCoreService.class));
+        if(reindex){
+            serviceIntent.putExtra("reindex", true);
+
+        }else{
+            serviceIntent.putExtra("reindex", false);
+
         }
+
+
+            thisContext.startService(serviceIntent);
+
         try {
             JSONObject json = new JSONObject();
             json.put("error", false);
@@ -331,41 +370,71 @@ public static void getProgress(){
             e.printStackTrace();
         }
 
-        scheduleJob();
     }
 
-    public static void scheduleJob() {
+    public static void cancelForeground(){
+
+        thisContext.stopService(new Intent(thisContext, ABCoreService.class));
+
+       // PendingIntent pStopSelf = PendingIntent.getService(thisContext, 0, stopSelf,PendingIntent.FLAG_CANCEL_CURRENT);
+    }
+
+    public static void scheduleJob(boolean limitedMode) {
+
         if(thisContext == null){
             return;
         }
+        if(Utils.isDaemonInstalled(thisContext) == false){
+            cancelJob();
+            return;
+        }
         ComponentName componentName = new ComponentName(thisContext, SyncJobService.class);
-        JobInfo info = new JobInfo.Builder(123, componentName)
-                .setRequiresCharging(true)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
-                .setPersisted(true)
-                .setPeriodic(15 * 60 * 1000)
-                .build();
+        JobInfo info = null;
+
+        if(limitedMode){
+            info = new JobInfo.Builder(123, componentName)
+                    .setRequiresCharging(true)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                    .setPersisted(true)
+                    .setPeriodic(15 * 60 * 1000)
+                    .build();
+
+        }else {
+            info = new JobInfo.Builder(123, componentName)
+                    .setPersisted(true)
+                    .setPeriodic(15 * 60 * 1000)
+                    .build();
+
+        }
 
         JobScheduler scheduler = (JobScheduler) thisContext.getSystemService(thisContext.JOB_SCHEDULER_SERVICE);
         int resultCode = scheduler.schedule(info);
         if (resultCode == JobScheduler.RESULT_SUCCESS) {
-            Log.d(TAG, "Job scheduled");
+            Log.i(TAG, "Job scheduled limited="+limitedMode);
         } else {
-            Log.d(TAG, "Job scheduling failed");
+            Log.i(TAG, "Job scheduling failed");
         }
     }
 
     public static void cancelJob() {
         JobScheduler scheduler = (JobScheduler) thisContext.getSystemService(thisContext.JOB_SCHEDULER_SERVICE);
         scheduler.cancel(123);
-        Log.d(TAG, "Job cancelled");
+        Log.i(TAG, "Job cancelled");
     }
 
-    public static void registerBackgroundSync(){
+    public static void registerBackgroundSync(boolean limited){
         if(checkIfDownloaded()){
-            Log.d(TAG, "scheduling job");
-            scheduleJob();
+            Log.i(TAG, "scheduling job");
+            scheduleJob(limited);
         }
+    }
+
+    public static long getRAM(){
+
+        ActivityManager actManager = (ActivityManager) thisContext.getSystemService(Context.ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+        actManager.getMemoryInfo(memInfo);
+        return memInfo.totalMem;
     }
 
     public static boolean checkIfDownloaded(){

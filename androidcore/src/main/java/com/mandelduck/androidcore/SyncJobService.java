@@ -16,39 +16,28 @@ public class SyncJobService extends JobService {
 
         Log.i(TAG, "Sync Job started");
 
+
+
+        Intent serviceIntent = new Intent(this, ABCoreService.class);
+        serviceIntent.putExtra("startForeground", true);
+        serviceIntent.putExtra("reindex", false);
+
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             Log.i(TAG, "start");
-            startForegroundService(new Intent(this, ABCoreService.class));
+
+
+           startForegroundService(serviceIntent);
 
         } else {
-           startService(new Intent(this, ABCoreService.class));
+            startService(serviceIntent);
         }
+
         return true;
     }
 
-    private void doBackgroundWork(final JobParameters params) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < 10; i++) {
-                    Log.d(TAG, "run: " + i);
-                    if (jobCancelled) {
-                        return;
-                    }
 
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                Log.d(TAG, "Job finished");
-                jobFinished(params, false);
-            }
-        }).start();
-    }
 
     @Override
     public boolean onStopJob(JobParameters params) {
