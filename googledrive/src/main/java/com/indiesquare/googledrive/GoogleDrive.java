@@ -366,7 +366,7 @@ public class GoogleDrive extends Activity implements ServiceListener {
     }
 
     public void fileUploadError(){
-        mCallback.eventFired("file upload error",null);
+        mCallback.eventFired("error please try again, if the problem persists, press 'unlink' and restart the app before trying again",null);
 
     }
 

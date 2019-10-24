@@ -104,37 +104,9 @@ public class RPCIntentService extends IntentService {
         return new BitcoinJSONRPCClient(getRpcUrl());
     }
 
-    private void broadcastPeerlist() throws IOException {
-       /*  final BitcoindRpcClient bitcoin = getRpc();
-
-        final Intent broadcastIntent = new Intent();
-       broadcastIntent.setAction(MainActivity.RPCResponseReceiver.ACTION_RESP);
-        broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        broadcastIntent.putExtra(PARAM_OUT_MSG, "peerlist");
-
-        final List<BitcoindRpcClient.PeerInfoResult> pir = bitcoin.getPeerInfo();
-        final ArrayList<String> peers = new ArrayList<>();
-        // find the most common blockchain height that is higher than hardcoded constant
-        for (final BitcoindRpcClient.PeerInfoResult r : pir)
-            peers.add(String.format("%s - %s - %s", r.getAddr(), r.getSubVer(), r.getStartingHeight()));
-        broadcastIntent.putStringArrayListExtra("peerlist", peers);
-
-        sendBroadcast(broadcastIntent);*/
-
-    }
 
     private void broadcastProgress() throws IOException {
         final BitcoindRpcClient bitcoin = getRpc();
-
-       /* final Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction(MainActivity.RPCResponseReceiver.ACTION_RESP);
-        broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        broadcastIntent.putExtra(PARAM_OUT_MSG, "progress");
-
-        final BitcoindRpcClient.BlockChainInfo info = bitcoin.getBlockChainInfo();
-        broadcastIntent.putExtra("sync", info.verificationProgress().multiply(BigDecimal.valueOf(100)).intValue());
-        broadcastIntent.putExtra("blocks", info.blocks());
-        sendBroadcast(broadcastIntent);*/
 
 
 
@@ -163,10 +135,7 @@ public class RPCIntentService extends IntentService {
 
     private void broadcastNetwork() throws IOException {
         final BitcoindRpcClient bitcoin = getRpc();
-     /*   final Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction(MainActivity.RPCResponseReceiver.ACTION_RESP);
-        broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        broadcastIntent.putExtra(PARAM_OUT_MSG, "localonion");*/
+
 
         final BitcoindRpcClient.NetworkInfo info = bitcoin.getNetworkInfo();
         for (final Object addrs : info.localAddresses()) {
@@ -178,22 +147,16 @@ public class RPCIntentService extends IntentService {
                 if (port != null && 8333 != port) {
                     onion += ":" + port;
                 }
-                //broadcastIntent.putExtra(PARAM_ONION_MSG, onion);
+
                 MainController.onionMessage(onion);
                 break;
             }
         }
-        //sendBroadcast(broadcastIntent);
     }
 
     private void broadcastError(final Exception e) {
         Log.e(TAG, e.getClass().getName());
-     /*   final Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction(MainActivity.RPCResponseReceiver.ACTION_RESP);
-        broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        broadcastIntent.putExtra(PARAM_OUT_MSG, "exception");
-        broadcastIntent.putExtra("exception", e.getMessage());
-        sendBroadcast(broadcastIntent);*/
+
     }
 
 
@@ -371,62 +334,10 @@ public class RPCIntentService extends IntentService {
                 }
             }
 
-            /*
-            if (console_request.equals("stop")) {
-                while (true) {
-                    try {
-                        Log.i(TAG,"Stopping rpc");
-                        getRpc().stop();
-                        break;
-                    } catch (final BitcoinRPCException | IOException e) {
-                        try {
-                            Thread.sleep(200);
-                        } catch (final InterruptedException e1) {
-                            break;
-                        }
-                    }
-                }
-                return;
-            }*/
+
 
             return;
         }
-/*
-        final String request = intent.getStringExtra("REQUEST");
-
-        Log.i(TAG,"requested local onion "+request);
-
-        try {
-
-            if (request != null)
-                if (request.equals("peerlist")) {
-                    broadcastPeerlist();
-                    return;
-                } else if (request.equals("progress")) {
-                    broadcastProgress();
-                    return;
-                } else if (request.equals("localonion")) {
-                    broadcastNetwork();
-                    return;
-                }
-
-            final BitcoindRpcClient bitcoin = getRpc();
-
-
-            bitcoin.getBlockCount();
-
-            MainController.postStart();
-
-        } catch (final BitcoinRPCException | IOException i) {
-            Log.i(TAG, "EXE", i);
-
-            if (i instanceof BitcoinRPCException && (((BitcoinRPCException) i).getResponseCode() == 500)) {
-                MainController.postStart();
-                return;
-            }
-
-            broadcastError(i);
-        }*/
 
 
 

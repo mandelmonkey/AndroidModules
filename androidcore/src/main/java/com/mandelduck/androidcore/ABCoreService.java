@@ -54,57 +54,14 @@ public class ABCoreService extends Service {
 
 
         private void setupNotificationAndMoveToForeground() {
-        Log.i(TAG, "started");
 
         final Intent broadcastIntent = new Intent();
         broadcastIntent.setAction(MainController.RPCResponseReceiver.ACTION_RESP);
         broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
         broadcastIntent.putExtra(PARAM_OUT_MSG, "OK");
         sendBroadcast(broadcastIntent);
-        Log.i(TAG, "started2");
 
-        Context cont = getBaseContext();
-
-        final Intent i = new Intent(cont, MainController.class);
-
-        Log.i(TAG, "started2.1");
-        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
-                Intent.FLAG_ACTIVITY_CLEAR_TASK);
-
-        Log.i(TAG, "started2.2");
-        final PendingIntent pI;
-        Log.i(TAG, "started3");
-        pI = PendingIntent.getActivity(cont, 0, i, PendingIntent.FLAG_ONE_SHOT);
-        Log.i(TAG, "started4");
-        final NotificationManager nM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        Log.i(TAG, "started5");
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(cont);
-        Log.i(TAG, "started6");
-        final String version = com.mandelduck.androidcore.Packages.getVersion(prefs.getString("version", com.mandelduck.androidcore.Packages.BITCOIN_NDK));
-
-        final Notification.Builder b = new Notification.Builder(cont)
-                .setContentTitle("Nayuta Full Node Is Running")
-                .setContentIntent(pI)
-                .setContentText(String.format("Version %s", version))
-                .setSmallIcon(R.drawable.ic_nayuta_icon)
-                .setOngoing(true);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            final int importance = NotificationManager.IMPORTANCE_LOW;
-
-            final NotificationChannel mChannel = new NotificationChannel("channel_00", "ABCore", importance);
-            mChannel.setDescription(String.format("Version %s", version));
-            mChannel.enableLights(true);
-            mChannel.enableVibration(true);
-            mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
-            nM.createNotificationChannel(mChannel);
-            b.setChannelId("channel_00");
-        }
-
-
-        final Notification n = b.build();
-
-        startForeground(NOTIFICATION_ID, n);
+        startForegroundNotif();
 
         MainController.postStart();
 
@@ -130,6 +87,46 @@ public class ABCoreService extends Service {
 
 
         }
+    }
+
+    public void startForegroundNotif(){
+        Context cont = getBaseContext();
+
+
+        final Intent i = new Intent(cont, MainController.class);
+
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        final PendingIntent pI;
+        pI = PendingIntent.getActivity(cont, 0, i, PendingIntent.FLAG_ONE_SHOT);
+        final NotificationManager nM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(cont);
+        final String version = com.mandelduck.androidcore.Packages.getVersion(prefs.getString("version", com.mandelduck.androidcore.Packages.BITCOIN_NDK));
+
+        final Notification.Builder b = new Notification.Builder(cont)
+                .setContentTitle("Nayuta Full Node Is Running")
+                .setContentIntent(pI)
+                .setContentText(String.format("Version %s", version))
+                .setSmallIcon(R.drawable.ic_nayuta_icon)
+                .setOngoing(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            final int importance = NotificationManager.IMPORTANCE_LOW;
+
+            final NotificationChannel mChannel = new NotificationChannel("channel_00", "ABCore", importance);
+            mChannel.setDescription(String.format("Version %s", version));
+            mChannel.enableLights(true);
+            mChannel.enableVibration(true);
+            mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
+            nM.createNotificationChannel(mChannel);
+            b.setChannelId("channel_00");
+        }
+
+
+        final Notification n = b.build();
+
+        startForeground(NOTIFICATION_ID, n);
     }
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
@@ -176,8 +173,6 @@ public class ABCoreService extends Service {
 
             torpb.directory(new File(path));
 
-           // mProcessTor = torpb.start();
-
             final ProcessLogger.OnError er = new ProcessLogger.OnError() {
                 @Override
                 public void onError(final String[] error) {
@@ -194,16 +189,6 @@ public class ABCoreService extends Service {
                     stopSelf();
                 }
             };
-          //  final ProcessLogger torErrorGobbler = new ProcessLogger(mProcessTor.getErrorStream(), er);
-            //final ProcessLogger torOutputGobbler = new ProcessLogger(mProcessTor.getInputStream(), er);
-
-           // torErrorGobbler.start();
-            //torOutputGobbler.start();
-
-            // allow to pass in a different datadir directory
-
-            // HACK: if user sets a datadir in the bitcoin.conf file that should then be the one
-            // used
 
 
             final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(cont);
@@ -224,7 +209,6 @@ public class ABCoreService extends Service {
 
             }
 
-
                      array = Arrays.asList( String.format("%s/%s", path, daemon),
                     "--server=1",
                     String.format("--datadir=%s", Utils.getDataDir(cont)),
@@ -242,7 +226,6 @@ public class ABCoreService extends Service {
 
             final ProcessBuilder pb = new ProcessBuilder(array);
 
-
             pb.directory(new File(path));
 
             mProcess = pb.start();
@@ -259,9 +242,9 @@ public class ABCoreService extends Service {
 
 
                if(extras == null) {
-                   Log.i("Service","null");
+                   Log.i("Service","extras are null");
                } else {
-                   Log.i("Service","not null");
+                   Log.i("Service","extras are not null");
                    boolean runInBackGround = (boolean) extras.get("startForeground");
                    if(runInBackGround){
                        setupNotificationAndMoveToForeground();

@@ -147,6 +147,7 @@ catch (Exception e){
     }
 
     static String getBitcoinConf(final Context c) {
+        Log.i(TAG,String.format("%s/bitcoinDirec/bitcoin.conf", getDir(c).getAbsolutePath()));
         return String.format("%s/bitcoinDirec/bitcoin.conf", getDir(c).getAbsolutePath());
     }
 

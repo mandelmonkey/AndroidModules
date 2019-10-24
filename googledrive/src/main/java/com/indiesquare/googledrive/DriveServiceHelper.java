@@ -331,7 +331,7 @@ public class DriveServiceHelper {
 
 
                 } catch (Exception e) {
-                    Log.e(TAG, e.getLocalizedMessage());
+                    Log.e(TAG, e.getLocalizedMessage()+"");
                     mController.fileDownloadError(e.getLocalizedMessage());
                 }
             }
@@ -430,7 +430,7 @@ public class DriveServiceHelper {
 
 
                 } catch (Exception e) {
-                    Log.e(TAG, e.getLocalizedMessage());
+                    Log.e(TAG, e.getLocalizedMessage()+"");
                     mController.fileUploadError();
                 }
             }
@@ -495,7 +495,7 @@ public class DriveServiceHelper {
                     mController.fileUploaded();
 
                 } catch (Exception e) {
-                    Log.e(TAG, e.getLocalizedMessage());
+                    Log.e(TAG, e.getLocalizedMessage()+"");
                     mController.fileUploadError();
 
                 }

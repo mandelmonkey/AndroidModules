@@ -1,8 +1,8 @@
+
 package com.mandelduck.androidcore;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.NotificationManager;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.BroadcastReceiver;
@@ -12,21 +12,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.view.View;
-import android.app.job.JobInfo;
-import android.app.job.JobScheduler;
 import android.app.ActivityManager;
 
 import android.app.ActivityManager.RunningServiceInfo;
 
-import android.app.Application;
-
-import android.app.PendingIntent;
 import org.apache.commons.compress.utils.IOUtils;
 import org.json.JSONObject;
 
@@ -42,8 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
-import com.mandelduck.androidcore.ABCoreService;
 
 public class MainController {
     public static boolean HAS_BEEN_STARTED = false;
@@ -132,36 +123,35 @@ public class MainController {
             mTimer.purge();
         }
     }
-    public static void readConf(final CallbackInterface callback){
+    public static String readConf(Context ctx){
+
 
         try{
 
-        final InputStream f = new FileInputStream(Utils.getBitcoinConf(thisContext));
-
-           callback.eventFired(new String(IOUtils.toByteArray(f)));
-        IOUtils.closeQuietly(f);
+        final InputStream f = new FileInputStream(Utils.getBitcoinConf(ctx));
+    return new String(IOUtils.toByteArray(f));
 
     } catch (final IOException e) {
         Log.i(TAG, e.getMessage());
     }
-
+        return "";
     }
 
-    public static void saveConf(String conf) {
+    public static void saveConf(String conf, Activity act, Context ctx) {
 
-        if (ContextCompat.checkSelfPermission(thisContext,
+        if (ContextCompat.checkSelfPermission(ctx,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED &&
-                !ActivityCompat.shouldShowRequestPermissionRationale(thisActivity,
+                !ActivityCompat.shouldShowRequestPermissionRationale(act,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE))
-            ActivityCompat.requestPermissions(thisActivity,
+            ActivityCompat.requestPermissions(act,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     0);
 
         // save file
         OutputStream f = null;
         try {
-            f = new FileOutputStream(Utils.getBitcoinConf(thisContext));
+            f = new FileOutputStream(Utils.getBitcoinConf(ctx));
             IOUtils.copy(new ByteArrayInputStream(conf.getBytes(StandardCharsets.UTF_8)), f);
 
         } catch (final IOException e) {
@@ -175,10 +165,6 @@ public class MainController {
     public static void onResume() {
 
         Log.i(TAG, "on resume");
-        /*if (!Utils.isDaemonInstalled(this)) {
-            startActivity(new Intent(this, DownloadActivity.class));
-            return;
-        }*/
 
         final IntentFilter rpcFilter = new IntentFilter(RPCResponseReceiver.ACTION_RESP);
         if (mRpcResponseReceiver == null) {
@@ -336,21 +322,7 @@ public static void getProgress(){
         } catch (Exception e2) {
             thisCallback.eventFired("");
         }
-        /* if (mTimer != null) {
-            mTimer.cancel();
-            mTimer.purge();
-        }
-        mTimer = new Timer();
-       mTimer.schedule(new TimerTask() {
-            public void run() {
-                thisActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        refresh();
-                    }
-                });
-            }
-        }, 1000, 1000);*/
+
     }
     public static void setUp(final Context context, final String config, final Activity activity, final CallbackInterface callback) {
         thisContext = context;
@@ -376,7 +348,6 @@ public static void getProgress(){
 
         thisContext.stopService(new Intent(thisContext, ABCoreService.class));
 
-       // PendingIntent pStopSelf = PendingIntent.getService(thisContext, 0, stopSelf,PendingIntent.FLAG_CANCEL_CURRENT);
     }
 
     public static void scheduleJob(boolean limitedMode) {
@@ -447,8 +418,6 @@ public static void getProgress(){
 
             @Override
             public void run() {
-        Log.i(TAG, "made it here");
-        Log.i(TAG, "made it herei");
         final File dir = Utils.getDir(thisContext);
         Log.i(TAG, dir.getAbsolutePath());
         final String arch = Utils.getArch();
@@ -494,12 +463,9 @@ public static void getProgress(){
 
             if (!new File(filePath).exists() || Utils.isSha256Different(arch, rawSha, filePath) != null) {
                 Log.i(TAG, "Downloading here "+url);
-                //  sendUpdate("Downloading", useDistribution);
                 Utils.downloadFile(url, filePath, odsc);
                 Log.i(TAG, "Downloading here2");
 
-                // Verify sha256sum
-                // sendUpdate("Verifying", useDistribution);
                 Utils.validateSha256sum(arch, rawSha, filePath);
 
                 Log.i(TAG, "Downloading here3");
@@ -514,23 +480,11 @@ public static void getProgress(){
             } catch (Exception e2) {
                 thisCallback.eventFired("");
             }
-            //sendUpdate("Uncompressing", useDistribution);
 
             Utils.extractTarXz(new File(filePath), dir);
 
-            // bitcoin core & deps installed, configure it now
               configureCore(thisContext);
 
-            // notify
-
-       /* // processing done here….
-        final Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction(DownloadActivity.DownloadInstallCoreResponseReceiver.ACTION_RESP);
-        broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        broadcastIntent.putExtra(PARAM_OUT_MSG, "OK");
-        sendBroadcast(broadcastIntent);
-        HAS_BEEN_STARTED = false;
-        markAsDone(rawSha, dir);*/
             HAS_BEEN_STARTED = false;
             try {
                 JSONObject json = new JSONObject();
@@ -554,9 +508,7 @@ public static void getProgress(){
             Log.i(TAG, e.getMessage());
             e.printStackTrace();
             final Intent broadcastIntent = new Intent();
-           // broadcastIntent.setAction(DownloadActivity.DownloadInstallCoreResponseReceiver.ACTION_RESP);
             broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-            // broadcastIntent.putExtra(PARAM_OUT_MSG, "exception");
             broadcastIntent.putExtra("exception", e.getMessage());
 
             //sendBroadcast(broadcastIntent);
@@ -604,7 +556,6 @@ public static void getProgress(){
             switch (text) {
                 case "OK":
 
-                    //postStart();
                     break;
                 case "exception":
                     final String exe = intent.getStringExtra("exception");
@@ -613,27 +564,7 @@ public static void getProgress(){
                     //postConfigure();
                     break;
                 case "localonion":
-                    /*
-                    final String onion = intent.getStringExtra(RPCIntentService.PARAM_ONION_MSG);
-                    if (onion != null && mTimer != null) {
-                        mTimer.cancel();
-                        mTimer.purge();
-                    }
-                    mQrCodeText.setText(onion);
-                    final ByteMatrix matrix;
-                    try {
-                        Log.d(TAG,"onion"+onion);
-                        matrix = Encoder.encode(onion, ErrorCorrectionLevel.M).getMatrix();
-                    } catch (final WriterException e) {
-                        throw new RuntimeException(e);
-                    }
-                    final int height = matrix.getHeight() * SCALE;
-                    final int width = matrix.getWidth() * SCALE;
-                    final Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                    for (int x = 0; x < width; ++x)
-                        for (int y = 0; y < height; ++y)
-                            bitmap.setPixel(x, y, matrix.get(x / SCALE, y / SCALE) == 1 ? Color.BLACK : 0);
-                    mImageViewQr.setImageBitmap(bitmap);*/
+                    //onion not added yet
             }
         }
     }
